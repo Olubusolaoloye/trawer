@@ -185,3 +185,20 @@ describe('cash-up', () => {
 });
 
 void SERVICE;
+
+describe('dashboard_today', () => {
+  it('summarises the day for staff, hides profit from roles without costs.view, refuses outsiders', async () => {
+    const b = await createBusiness('Dash Co');
+    const p = await createProduct(b, [{ price: 1000, cost: 600, stock: 50 }]);
+    const [d] = await q(b.owner, `insert into devices (business_id, location_id, name) values ($1,$2,'Till') returning id`, [b.id, b.locationId]);
+    const till = await addStaff(b, 'cashier');
+    await rpc(till, 'public.sync_pos_sale', [JSON.stringify({ device_id: d!.id, client_id: randomUUID(), items: [{ variant_id: p.variantIds[0], qty: 3, unit_price_kobo: 1000 }], payments: [{ client_id: randomUUID(), method: 'cash', amount_kobo: 3000 }] })]);
+    const owner = await rpc<any>(b.owner, 'public.dashboard_today', [b.id]);
+    expect(owner).toMatchObject({ taken_today_kobo: 3000, sales_today_kobo: 3000, profit_today_kobo: 1200, orders_today: 1, by_channel: { pos: 3000 } });
+    expect(owner.best_sellers[0]).toMatchObject({ qty: 3 });
+    const cashierView = await rpc<any>(till, 'public.dashboard_today', [b.id]);
+    expect(cashierView.profit_today_kobo).toBeNull();
+    const outsider = await createBusiness('Nosy Co');
+    await expectPgError(rpc(outsider.owner, 'public.dashboard_today', [b.id]), '42501');
+  });
+});

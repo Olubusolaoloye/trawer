@@ -1,14 +1,43 @@
 @import "tailwindcss";
 
+/* Market Light — see the design canvas. Colour has a job:
+   green = money + next action · indigo = wholesale · gold = highlight only · red = act now. */
 @theme {
-  --color-brand: var(--brand, #0f766e);
+  --color-ink: #0E1411;
+  --color-ink-2: #1E241F;
+  --color-paper: #FAF7F0;
+  --color-line: #E4DED2;
+  --color-line-soft: #F0EBE1;
+  --color-muted: #5B5F57;
+  --color-body: #3E433C;
+  --color-green: #0B7A4B;
+  --color-green-ink: #075C38;
+  --color-green-50: #E3F2EA;
+  --color-indigo: #23308C;
+  --color-indigo-50: #E8EAF7;
+  --color-gold: #F2B705;
+  --color-gold-ink: #6B4600;
+  --color-gold-50: #FDF3CC;
+  --color-red: #C8261B;
+  --color-red-ink: #9A1C13;
+  --color-red-50: #FBE7E4;
+  /* the shop's own colour on storefronts (set at runtime) */
+  --color-brand: var(--brand, #0B7A4B);
   --color-brand-ink: var(--brand-ink, #ffffff);
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Bricolage Grotesque", Inter, system-ui, sans-serif;
+  --radius-xl: 14px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
 }
 
 :root { color-scheme: light; }
 html { -webkit-text-size-adjust: 100%; }
-body { @apply bg-stone-50 text-stone-900 antialiased; }
-:focus-visible { outline: 3px solid var(--color-brand); outline-offset: 2px; }
+body { @apply bg-paper text-ink antialiased; }
+.num { font-variant-numeric: tabular-nums; }
+.dots { background-image: radial-gradient(circle at 12px 12px, rgb(242 183 5 / 0.55) 2px, transparent 2.5px); background-size: 24px 24px; }
+:focus-visible { outline: 3px solid var(--color-ink); outline-offset: 2px; }
 button, a, input, select, textarea { touch-action: manipulation; }
+@keyframes tw-pulse { 0% { transform: scale(1); opacity: .55 } 100% { transform: scale(2.4); opacity: 0 } }
+.pulse-ring { animation: tw-pulse 1.6s ease-out infinite; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

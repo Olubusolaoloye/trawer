@@ -31,7 +31,7 @@ function ProductList() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{t('dash.products')}</h1>
+        <h1 className="font-display text-[30px] font-extrabold lg:text-[34px]">{t('dash.products')}</h1>
         {b.can('products.draft') && <Link to={`${b.base}/products/new`}><Button><Plus className="size-5" aria-hidden />{t('dash.newProduct')}</Button></Link>}
       </div>
       <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); setParams(q ? { q } : {}); }}>
@@ -41,9 +41,9 @@ function ProductList() {
       <div className="flex gap-2 overflow-x-auto">
         {[['', 'All'], ['active', 'Live'], ['draft', 'Drafts'], ['archived', 'Archived']].map(([v, l]) => (
           <button key={v} type="button" onClick={() => setParams(v ? { status: v } : {})}
-            className={cx('min-h-10 rounded-full border-2 px-4 text-sm font-semibold', !low && status === v ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-300 bg-white')}>{l}</button>
+            className={cx('min-h-10 rounded-full border-2 px-4 text-sm font-semibold', !low && status === v ? 'border-ink bg-ink text-white' : 'border-line bg-white')}>{l}</button>
         ))}
-        <button type="button" onClick={() => setParams({ low: '1' })} className={cx('min-h-10 rounded-full border-2 px-4 text-sm font-semibold', low ? 'border-amber-600 bg-amber-500 text-white' : 'border-stone-300 bg-white')}>{t('dash.lowStock')}</button>
+        <button type="button" onClick={() => setParams({ low: '1' })} className={cx('min-h-10 rounded-full border-2 px-4 text-sm font-semibold', low ? 'border-gold bg-gold text-ink text-white' : 'border-line bg-white')}>{t('dash.lowStock')}</button>
       </div>
       {low ? (
         !lowList.data ? <Spinner /> : lowList.data.items.length === 0 ? <Empty>{t('common.none')}</Empty> : (
@@ -51,7 +51,7 @@ function ProductList() {
             {lowList.data.items.map((i) => (
               <li key={`${i.variant_id}:${i.location_id}`}>
                 <Link to={`${b.base}/products/${i.product_id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-2">
-                  <span><span className="font-semibold">{i.product_name}</span> <span className="text-sm text-stone-600">{[i.colour, i.size].filter(Boolean).join(' / ')}</span></span>
+                  <span><span className="font-semibold">{i.product_name}</span> <span className="text-sm text-body">{[i.colour, i.size].filter(Boolean).join(' / ')}</span></span>
                   <Badge tone={i.available === 0 ? 'bad' : 'warn'}>{i.available} left</Badge>
                 </Link>
               </li>
@@ -63,10 +63,10 @@ function ProductList() {
           {list.data.products.map((p) => (
             <li key={p.id}>
               <Link to={`${b.base}/products/${p.id}`} className="flex min-h-16 items-center gap-3 px-3 py-2">
-                {p.image ? <img src={p.image} alt="" width={48} height={48} loading="lazy" className="size-12 rounded-lg object-cover" /> : <div className="size-12 rounded-lg bg-stone-100" />}
+                {p.image ? <img src={p.image} alt="" width={48} height={48} loading="lazy" className="size-12 rounded-lg object-cover" /> : <div className="size-12 rounded-lg bg-line-soft" />}
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{p.name}</p>
-                  <p className="text-sm text-stone-600">{p.variants} variant{p.variants === 1 ? '' : 's'} · {p.available} available</p>
+                  <p className="text-sm text-body">{p.variants} variant{p.variants === 1 ? '' : 's'} · {p.available} available</p>
                 </div>
                 <div className="text-right">
                   <p className="font-semibold">{p.price_kobo != null ? formatNaira(p.price_kobo) : '—'}</p>
@@ -118,12 +118,8 @@ function NewProduct() {
   return (
     <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); void save.run(); }}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">{t('dash.newProduct')}</h1>
-        <div className="flex gap-2">
-          <Link to={`${b.base}/products/snap`}><Button type="button" variant="secondary" size="sm">📷 Snap to upload</Button></Link>
-          <Link to={`${b.base}/products/import`}><Button type="button" variant="secondary" size="sm">Bulk import</Button></Link>
-        </div>
-      </div>
+        <h1 className="font-display text-[30px] font-extrabold">{t('dash.newProduct')}</h1>
+</div>
       <Card className="space-y-4">
         <Field label="Product name" htmlFor="pn"><Input id="pn" required value={p.name} onChange={(e) => setP({ ...p, name: e.target.value })} /></Field>
         <div className="grid grid-cols-2 gap-3">
@@ -146,12 +142,12 @@ function NewProduct() {
       </Card>
 
       <div className="space-y-3">
-        <h2 className="text-lg font-bold">Colours / sizes</h2>
+        <h2 className="font-display text-xl font-extrabold">Colours / sizes</h2>
         {rows.map((r, i) => (
           <Card key={i} className="space-y-3">
             <div className="flex items-start gap-3">
-              <label className="flex size-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-stone-300 bg-stone-50">
-                {r.image_url ? <img src={r.image_url} alt="" className="size-full object-cover" /> : <ImagePlus className="size-7 text-stone-500" aria-label="Add photo" />}
+              <label className="flex size-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-line bg-line-soft">
+                {r.image_url ? <img src={r.image_url} alt="" className="size-full object-cover" /> : <ImagePlus className="size-7 text-muted" aria-label="Add photo" />}
                 <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => e.target.files?.[0] && void upload.run(i, e.target.files[0])} />
               </label>
               <div className="grid flex-1 grid-cols-[1fr_auto] gap-2">
@@ -197,8 +193,8 @@ function ProductDetail() {
       {mfa.prompt}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{p.name}</h1>
-          <p className="text-sm text-stone-600">{p.category ?? 'No category'} · added {formatDate(p.created_at)} · {p.source}</p>
+          <h1 className="font-display text-[30px] font-extrabold">{p.name}</h1>
+          <p className="text-sm text-body">{p.category ?? 'No category'} · added {formatDate(p.created_at)} · {p.source}</p>
         </div>
         <div className="flex gap-2">
           <Badge tone={p.status === 'active' ? 'good' : 'warn'}>{p.status}</Badge>
@@ -211,7 +207,7 @@ function ProductDetail() {
       {data.images.length > 0 && (
         <div className="flex gap-2 overflow-x-auto">{data.images.map((i: any) => <img key={i.id} src={i.url} alt="" className="size-24 rounded-xl object-cover" />)}</div>
       )}
-      <p className="text-sm text-stone-700">Units: {data.units.map((u: any) => `${u.name}${u.factor > 1 ? ` = ${u.factor}` : ''}`).join(' · ')}</p>
+      <p className="text-sm text-body">Units: {data.units.map((u: any) => `${u.name}${u.factor > 1 ? ` = ${u.factor}` : ''}`).join(' · ')}</p>
       {data.variants.map((v: any) => (
         <VariantCard key={v.id} v={v} tiers={data.tiers} tierPrices={data.tier_prices.filter((x: any) => x.variant_id === v.id)} reload={() => invalidate(key)}
           onHistory={() => setHistoryFor(historyFor === v.id ? null : v.id)} showHistory={historyFor === v.id} mfa={mfa} />
@@ -249,16 +245,18 @@ function VariantCard({ v, tiers, tierPrices, reload, onHistory, showHistory, mfa
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {v.colour_hex && <span className="size-6 rounded-full border" style={{ background: v.colour_hex }} />}
-          <h2 className="font-bold">{[v.colour, v.size].filter(Boolean).join(' / ') || 'Default'}</h2>
-          <span className="text-sm text-stone-600">SKU {v.sku} · {v.barcode}</span>
+          <h2 className="font-display text-lg font-extrabold">{[v.colour, v.size].filter(Boolean).join(' / ') || 'Default'}</h2>
+          <span className="text-sm text-body">SKU {v.sku} · {v.barcode}</span>
         </div>
         <a className="text-sm font-semibold underline" href={`/api/biz/${b.business.id}/variants/${v.id}/label.pdf`} target="_blank" rel="noreferrer">Print label</a>
       </div>
-      <dl className="grid grid-cols-4 gap-2 text-center">
-        {[['On hand', v.on_hand], ['Reserved', v.reserved], ['On tills', v.allocated], ['Available', v.available]].map(([l, n]) => (
-          <div key={l} className="rounded-xl bg-stone-50 p-2"><dt className="text-xs text-stone-600">{l}</dt><dd className="text-xl font-extrabold">{n}</dd></div>
-        ))}
-      </dl>
+      <div className="space-y-1.5">
+        <div className="flex items-baseline justify-between"><span className="text-sm font-semibold text-muted">{t('stock.canSell')}</span><b className={cx('num font-display text-2xl', v.available === 0 ? 'text-red-ink' : v.available <= (v.low_stock_threshold ?? 5) ? 'text-gold-ink' : '')}>{v.available}</b></div>
+        <div role="img" aria-label={t('stock.barLabel', { onHand: v.on_hand, available: v.available, reserved: v.reserved, allocated: v.allocated })} className="flex h-3.5 overflow-hidden rounded-full bg-line-soft">
+          <span className="bg-green" style={{ flex: v.available }} /><span className="bg-gold" style={{ flex: v.reserved }} /><span className="bg-indigo" style={{ flex: v.allocated }} />
+        </div>
+        <p className="text-xs text-muted">{t('stock.breakdown', { onHand: v.on_hand, reserved: v.reserved, allocated: v.allocated })}</p>
+      </div>
       {(b.can('stock.receive') || b.can('stock.adjust')) && (
         <form className="grid grid-cols-[auto_1fr] gap-2 sm:grid-cols-[auto_8rem_1fr_auto]" onSubmit={(e) => { e.preventDefault(); void stock.run(); }}>
           <Select aria-label="Stock action" value={action} onChange={(e) => setAction(e.target.value as typeof action)} className="w-36">
@@ -283,11 +281,11 @@ function VariantCard({ v, tiers, tierPrices, reload, onHistory, showHistory, mfa
           <ErrorNote error={savePrice.error} />
         </form>
         {b.can('prices.manage') && tiers.length > 0 && (
-          <form className="space-y-2" onSubmit={async (e) => {
+          <form className="space-y-2 rounded-2xl border-2 border-indigo p-3" onSubmit={async (e) => {
             e.preventDefault();
             await saveTiers.run();
           }}>
-            <p className="text-sm font-semibold">Tier prices ₦ per piece</p>
+            <div className="flex items-center justify-between"><p className="text-sm font-bold">{t('stock.tierPrices')}</p><Badge tone="info">2FA</Badge></div>
             {tiers.map((tr) => (
               <div key={tr.id} className="flex items-center gap-2">
                 <label htmlFor={`tp${v.id}${tr.id}`} className="w-28 shrink-0 text-sm">{tr.name}{tr.is_wholesale ? ' (W)' : ''}</label>
@@ -306,9 +304,9 @@ function VariantCard({ v, tiers, tierPrices, reload, onHistory, showHistory, mfa
         <ul className="divide-y text-sm">
           {history.data.history.map((h) => (
             <li key={h.id} className="flex justify-between gap-3 py-2">
-              <span><span className="font-semibold">{h.type}</span> {h.order_number ? `#${h.order_number}` : ''} {h.reason ?? ''} <span className="text-stone-500">· {h.actor ?? h.channel ?? ''}</span></span>
-              <span className={cx('font-mono', h.qty_delta > 0 ? 'text-emerald-700' : 'text-red-700')}>{h.qty_delta > 0 ? '+' : ''}{h.qty_delta}</span>
-              <span className="text-stone-500">{formatDate(h.created_at, true)}</span>
+              <span><span className="font-semibold">{h.type}</span> {h.order_number ? `#${h.order_number}` : ''} {h.reason ?? ''} <span className="text-muted">· {h.actor ?? h.channel ?? ''}</span></span>
+              <span className={cx('font-mono', h.qty_delta > 0 ? 'text-green-ink' : 'text-red-ink')}>{h.qty_delta > 0 ? '+' : ''}{h.qty_delta}</span>
+              <span className="text-muted">{formatDate(h.created_at, true)}</span>
             </li>
           ))}
         </ul>

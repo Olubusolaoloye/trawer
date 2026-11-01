@@ -1,2 +1,2 @@
-{ "name": "Trawer", "short_name": "Trawer", "start_url": "/", "display": "standalone", "background_color": "#ffffff", "theme_color": "#0F766E",
+{ "name": "Trawer", "short_name": "Trawer", "start_url": "/", "display": "standalone", "background_color": "#ffffff", "theme_color": "#0B7A4B",
   "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }] }

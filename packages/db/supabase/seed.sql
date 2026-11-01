@@ -116,7 +116,7 @@ begin
     o := public.place_order(jsonb_build_object(
       'business_id', v_biz,
       'channel', (array['web','whatsapp','pos','instagram'])[1 + i % 4],
-      'customer_id', v_cust[1 + i % 5],
+      'customer_id', v_cust[1 + (i + 1) % 5],
       'items', jsonb_build_array(
         jsonb_build_object('variant_id', v_variants[1 + (i * 3) % array_length(v_variants, 1)], 'qty', 1 + i % 3,
                            'unit_id', case when i % 2 = 0 then v_bundle else v_piece end),

@@ -19,14 +19,14 @@ export function MfaPrompt({ onVerified, onCancel }: { onVerified: () => void; on
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="mfa-title" className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
       <Card className="w-full max-w-md space-y-4">
-        <h2 id="mfa-title" className="text-xl font-bold">{t('auth.mfaTitle')}</h2>
-        <p className="text-stone-700">{t('auth.mfaBody')}</p>
+        <h2 id="mfa-title" className="font-display text-2xl font-extrabold">{t('auth.mfaTitle')}</h2>
+        <p className="text-body">{t('auth.mfaBody')}</p>
         {!factor ? (
           <Button className="w-full" pending={start.pending} onClick={() => void start.run()}>{t('common.continue')}</Button>
         ) : (
           <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void verify.run(); }}>
-            <p className="text-sm text-stone-700">{t('auth.mfaSetup')}</p>
-            <code className="block break-all rounded-lg bg-stone-100 p-2 text-sm">{factor.secret}</code>
+            <p className="text-sm text-body">{t('auth.mfaSetup')}</p>
+            <code className="block break-all rounded-lg bg-line-soft p-2 text-sm">{factor.secret}</code>
             <Field label={t('auth.code')} htmlFor="totp" hint={import.meta.env.DEV ? t('auth.devHint') : undefined}>
               <Input id="totp" inputMode="numeric" maxLength={6} autoFocus value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
             </Field>

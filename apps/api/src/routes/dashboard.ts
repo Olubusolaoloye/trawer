@@ -61,6 +61,11 @@ dashboardRoutes.get('/:bid', (c) => asStaff(c, async (tx, b) => {
   return c.json({ business: { ...business, logo_url: imageUrl(business.logo_path, 200) }, role: role?.role, permissions: perms.map((p) => p.permission), locations, stats });
 }));
 
+dashboardRoutes.get('/:bid/today', (c) => asStaff(c, async (tx, b) => {
+  const r = await one(tx, `select public.dashboard_today($1) as d`, [b]);
+  return c.json(r!.d);
+}));
+
 dashboardRoutes.patch('/:bid', async (c) => {
   const input = await body(c, z.object({
     name: z.string().trim().min(2).max(120).optional(),

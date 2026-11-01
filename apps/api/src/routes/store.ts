@@ -29,10 +29,16 @@ async function business(tx: Tx, slug: string): Promise<StoreBusiness> {
 }
 
 async function viewer(tx: Tx, businessId: string) {
-  return one<{ id: string; name: string; buyer_type: string; wholesale_status: string; tier_name: string | null; is_wholesale_view: boolean }>(tx,
-    `select c.id, c.name, c.buyer_type, c.wholesale_status, t.name tier_name,
-            coalesce(t.is_wholesale and c.wholesale_status = 'approved', false) as is_wholesale_view
+  return one<{ id: string; name: string; business_name: string | null; buyer_type: string; wholesale_status: string; tier_name: string | null;
+    is_wholesale_view: boolean; owing_kobo: number; oldest_owing_order: number | null; account_number: string | null; bank_name: string | null }>(tx,
+    `select c.id, c.name, c.business_name, c.buyer_type, c.wholesale_status, t.name tier_name,
+            coalesce(t.is_wholesale and c.wholesale_status = 'approved', false) as is_wholesale_view,
+            (select coalesce(sum(o.balance_kobo), 0) from orders o where o.customer_id = c.id and o.status in ('confirmed','completed')) as owing_kobo,
+            (select o.order_number from orders o where o.customer_id = c.id and o.status in ('confirmed','completed') and o.balance_kobo > 0
+             order by o.created_at limit 1) as oldest_owing_order,
+            va.account_number, va.bank_name
      from customers c left join customer_tiers t on t.id = c.tier_id
+     left join virtual_accounts va on va.customer_id = c.id and va.status = 'active'
      where c.business_id = $1 and c.user_id = auth.uid()`, [businessId]);
 }
 
@@ -40,7 +46,7 @@ storeRoutes.get('/:slug', async (c) => {
   const data = await withUser(c.get('claims'), async (tx) => {
     const b = await business(tx, c.req.param('slug'));
     const [me, categories] = await Promise.all([
-      viewer(tx, b.id),
+      c.get('claims') ? viewer(tx, b.id) : Promise.resolve(null),
       many(tx, `select category, count(*)::int n from products where business_id = $1 and status = 'active' and category is not null
                 group by 1 order by 2 desc limit 30`, [b.id]),
     ]);
@@ -259,7 +265,12 @@ storeRoutes.get('/:slug/reorder', async (c) => {
     const b = await business(tx, c.req.param('slug'));
     return many(tx, `
       select i.variant_id, i.unit_id, max(i.name) as name, max(i.variant_label) as variant_label,
-             round(avg(i.unit_qty))::int as usual_qty, count(*)::int as times, max(o.created_at) as last_ordered
+             round(avg(i.unit_qty))::int as usual_qty, count(*)::int as times, max(o.created_at) as last_ordered,
+             (select u.name from units u where u.id = i.unit_id) as unit_name,
+             (select pu.factor from product_units pu join product_variants v on v.product_id = pu.product_id
+              where v.id = i.variant_id and pu.unit_id = i.unit_id) as factor,
+             (select (public.resolve_price(i.variant_id, public.my_customer_id($1), 1, 'web')).unit_price_kobo) as unit_price_kobo,
+             (select a.available from public.variant_availability(array[i.variant_id]) a) as available
       from order_items i join orders o on o.id = i.order_id
       where o.business_id = $1 and o.customer_id = public.my_customer_id($1) and o.status in ('confirmed', 'completed')
         and exists (select 1 from product_variants v join products p on p.id = v.product_id

@@ -46,13 +46,13 @@ export default function SettingsPage() {
   return (
     <div className="space-y-5">
       {savePayout.prompt ?? invite.prompt ?? addTier.prompt}
-      <h1 className="text-2xl font-bold">{t('dash.settings')}</h1>
-      {params.get('welcome') && <p className="rounded-xl bg-emerald-50 p-3 font-semibold text-emerald-900">Your shop is live at {b.business.slug}.trawer.shop. Add your bank account, locations and staff below.</p>}
+      <h1 className="font-display text-[30px] font-extrabold lg:text-[34px]">{t('dash.settings')}</h1>
+      {params.get('welcome') && <p className="rounded-xl bg-green-50 p-3 font-semibold text-green-ink">Your shop is live at {b.business.slug}.trawer.shop. Add your bank account, locations and staff below.</p>}
 
       {b.can('settings.manage') && (
         <Card>
           <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void saveBiz.run(); }}>
-            <h2 className="font-bold">Shop</h2>
+            <h2 className="font-display text-lg font-extrabold">Shop</h2>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Brand colour" htmlFor="bc"><input id="bc" type="color" className="h-12 w-24 rounded-lg" value={f.brand_colour} onChange={(e) => setF({ ...f, brand_colour: e.target.value })} /></Field>
               <Field label="Hold stock for unpaid orders (minutes)" htmlFor="rm"><Input id="rm" inputMode="numeric" value={f.reservation_minutes} onChange={(e) => setF({ ...f, reservation_minutes: e.target.value.replace(/\D/g, '') })} /></Field>
@@ -66,7 +66,7 @@ export default function SettingsPage() {
       <Link to={`${b.base}/tills`} className="flex min-h-14 items-center justify-between rounded-2xl border bg-white px-4 font-semibold">Tills (POS) & stock alerts <span aria-hidden>›</span></Link>
 
       <Card className="space-y-3">
-        <h2 className="font-bold">Locations</h2>
+        <h2 className="font-display text-lg font-extrabold">Locations</h2>
         <ul className="space-y-1">{b.locations.map((l) => <li key={l.id}>{l.name} {l.is_default && <Badge>default</Badge>}</li>)}</ul>
         {b.can('settings.manage') && (
           <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); void addLoc.run(); }}>
@@ -80,8 +80,8 @@ export default function SettingsPage() {
       {b.can('payouts.manage') && (
         <Card>
           <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void savePayout.run(); }}>
-            <h2 className="font-bold">Bank account for transfers</h2>
-            <p className="text-sm text-stone-600">Buyers pay into virtual accounts that settle straight to this account. Trawer never holds your money.</p>
+            <h2 className="font-display text-lg font-extrabold">Bank account for transfers</h2>
+            <p className="text-sm text-body">Buyers pay into virtual accounts that settle straight to this account. Trawer never holds your money.</p>
             {payout.data?.payout && <p className="text-sm">Current: {payout.data.payout.bank_name} ••••{payout.data.payout.last4} ({payout.data.payout.account_name})</p>}
             <div className="grid gap-2 sm:grid-cols-2">
               <Field label="Bank name" htmlFor="bn"><Input id="bn" required value={bank.bank_name} onChange={(e) => setBank({ ...bank, bank_name: e.target.value })} /></Field>
@@ -97,10 +97,10 @@ export default function SettingsPage() {
 
       {b.can('staff.manage') && (
         <Card className="space-y-3">
-          <h2 className="font-bold">Staff</h2>
+          <h2 className="font-display text-lg font-extrabold">Staff</h2>
           <ul className="divide-y">
             {staff.data?.staff.map((s) => (
-              <li key={s.id} className="flex items-center justify-between py-2"><span>{s.display_name || s.phone} <span className="text-sm text-stone-600">{s.phone}</span></span><span className="flex gap-1"><Badge>{s.role}</Badge><Badge tone={s.status === 'active' ? 'good' : 'warn'}>{s.status}</Badge></span></li>
+              <li key={s.id} className="flex items-center justify-between py-2"><span>{s.display_name || s.phone} <span className="text-sm text-body">{s.phone}</span></span><span className="flex gap-1"><Badge>{s.role}</Badge><Badge tone={s.status === 'active' ? 'good' : 'warn'}>{s.status}</Badge></span></li>
             ))}
           </ul>
           <form className="grid gap-2 sm:grid-cols-[1fr_1fr_10rem_auto]" onSubmit={(e) => { e.preventDefault(); void invite.run(); }}>
@@ -116,8 +116,8 @@ export default function SettingsPage() {
       )}
 
       <Card className="space-y-3">
-        <h2 className="font-bold">Price tiers</h2>
-        <ul className="space-y-1">{tiers.data?.tiers.map((x) => <li key={x.id}>{x.name} {x.is_wholesale && <Badge tone="brand">wholesale</Badge>} <span className="text-sm text-stone-600">· {x.customers} customers</span></li>)}</ul>
+        <h2 className="font-display text-lg font-extrabold">Price tiers</h2>
+        <ul className="space-y-1">{tiers.data?.tiers.map((x) => <li key={x.id}>{x.name} {x.is_wholesale && <Badge tone="wholesale">wholesale</Badge>} <span className="text-sm text-body">· {x.customers} customers</span></li>)}</ul>
         {b.can('prices.manage') && (
           <form className="flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); void addTier.run(); }}>
             <Input aria-label="Tier name" required placeholder="e.g. VIP wholesale" value={tier.name} onChange={(e) => setTier({ ...tier, name: e.target.value })} className="flex-1" />

@@ -27,15 +27,15 @@ export default function Tills() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold">Tills & stock alerts</h1>
+      <h1 className="font-display text-[30px] font-extrabold lg:text-[34px]">Tills & stock alerts</h1>
 
       <section className="space-y-2">
-        <h2 className="text-lg font-bold">Conflicts from offline sales</h2>
-        {!alerts.data ? <Spinner /> : alerts.data.alerts.length === 0 ? <p className="text-stone-600">No open alerts.</p> : alerts.data.alerts.map((a) => (
-          <Card key={a.id} className="space-y-1 border-amber-300 bg-amber-50">
+        <h2 className="font-display text-xl font-extrabold">Conflicts from offline sales</h2>
+        {!alerts.data ? <Spinner /> : alerts.data.alerts.length === 0 ? <p className="text-body">No open alerts.</p> : alerts.data.alerts.map((a) => (
+          <Card key={a.id} className="space-y-1 border-gold bg-gold-50">
             <p className="font-semibold">{a.product}{a.label ? ` (${a.label})` : ''} · short {a.qty}</p>
             <p className="text-sm">{a.message}</p>
-            <p className="text-sm text-stone-600">{a.device} · {formatDate(a.created_at, true)}{a.order_number ? <> · <Link className="underline" to={`${b.base}/orders/${a.order_id}`}>order #{a.order_number}</Link></> : null}</p>
+            <p className="text-sm text-body">{a.device} · {formatDate(a.created_at, true)}{a.order_number ? <> · <Link className="underline" to={`${b.base}/orders/${a.order_id}`}>order #{a.order_number}</Link></> : null}</p>
             <div className="flex gap-2 pt-1">
               <Link to={`${b.base}/products/${a.product_id}`}><Button size="sm" variant="secondary">Recount stock</Button></Link>
               {b.can('stock.adjust') && <Button size="sm" onClick={() => void resolve.run(a.id)}>Mark resolved</Button>}
@@ -46,24 +46,24 @@ export default function Tills() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-lg font-bold">Tills</h2>
+        <h2 className="font-display text-xl font-extrabold">Tills</h2>
         {!devices.data ? <Spinner /> : devices.data.devices.length === 0 ? <Empty>Install the Trawer POS app and add a till from it.</Empty> : devices.data.devices.map((d) => (
           <Card key={d.id} className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="font-semibold">{d.name} <span className="text-sm text-stone-600">· {d.location}</span></p>
+              <p className="font-semibold">{d.name} <span className="text-sm text-body">· {d.location}</span></p>
               <Badge tone={d.last_sync_at ? 'good' : 'warn'}>{d.last_sync_at ? `synced ${formatDate(d.last_sync_at, true)}` : 'never synced'}</Badge>
             </div>
             {d.allocations.length > 0 ? (
               <ul className="text-sm">{d.allocations.map((a: any) => <li key={a.variant_id}>{a.qty} × {a.name}{a.label ? ` (${a.label})` : ''}</li>)}</ul>
-            ) : <p className="text-sm text-stone-600">No stock allocated — this till can only sell while online.</p>}
+            ) : <p className="text-sm text-body">No stock allocated — this till can only sell while online.</p>}
           </Card>
         ))}
       </section>
 
       {b.can('stock.allocate') && devices.data && devices.data.devices.length > 0 && (
         <Card className="space-y-3">
-          <h2 className="font-bold">Allocate stock to a till</h2>
-          <p className="text-sm text-stone-600">Allocated stock is held for the till so it can sell offline. Use a negative number to take it back.</p>
+          <h2 className="font-display text-lg font-extrabold">Allocate stock to a till</h2>
+          <p className="text-sm text-body">Allocated stock is held for the till so it can sell offline. Use a negative number to take it back.</p>
           <Select aria-label="Till" value={form.device} onChange={(e) => setForm({ ...form, device: e.target.value })}>
             <option value="">Choose till</option>{devices.data.devices.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </Select>
