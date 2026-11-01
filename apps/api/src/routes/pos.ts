@@ -14,7 +14,7 @@ import { imageUrl } from '../storage';
 export const posRoutes = new Hono<AppEnv>();
 
 posRoutes.use('*', async (c, next) => {
-  if (!c.req.header('authorization')) throw new ApiError(401, 'bearer_token_required');
+  if (!c.req.header('authorization')) throw new ApiError(401, 'not_authenticated');
   await next();
 });
 

@@ -21,6 +21,8 @@ app.get('/media/:bucket/*', async (c) => {
 // Production: serve the built SPA from the same origin (cookies + no CORS).
 if (env.WEB_DIST) {
   const root = resolve(env.WEB_DIST);
+  // Never serve source maps or dotfiles even if a build left some behind.
+  app.use('*', async (c, next) => (/\.map$|\/\./.test(c.req.path) ? c.notFound() : next()));
   app.use('/assets/*', serveStatic({ root, onFound: (_p, c) => c.header('Cache-Control', 'public, max-age=31536000, immutable') }));
   app.use('/*', serveStatic({ root }));
   const index = await readFile(join(root, 'index.html'), 'utf8');

@@ -63,7 +63,7 @@ export class PaystackProvider implements PaymentProvider {
     private readonly secretKey: string,
     private readonly opts: { preferredBank?: string; baseUrl?: string; fetch?: Fetch } = {},
   ) {
-    if (!secretKey.startsWith('sk_')) throw new Error('PAYSTACK_SECRET_KEY must be a Paystack secret key');
+    if (!secretKey) throw new Error('payment_not_configured');
   }
 
   private async call<T>(path: string, init: { method: 'GET' | 'POST'; body?: unknown }): Promise<T> {
@@ -200,6 +200,6 @@ export class FakePaymentProvider implements PaymentProvider {
   }
 
   parseEvent(rawBody: string): PaymentEvent {
-    return new PaystackProvider('sk_fake').parseEvent(rawBody);
+    return new PaystackProvider('fake').parseEvent(rawBody);
   }
 }

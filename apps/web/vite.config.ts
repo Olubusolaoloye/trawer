@@ -15,7 +15,9 @@ export default defineConfig({
   build: {
     target: 'es2020',
     cssCodeSplit: true,
-    sourcemap: true,
+    // Never publish source maps: they expose the app's source and API structure.
+    // SOURCEMAP=hidden builds them for an error tracker upload; check-bundle deletes them before deploy.
+    sourcemap: process.env.SOURCEMAP === 'hidden' ? 'hidden' : false,
     rollupOptions: {
       output: {
         manualChunks(id) {

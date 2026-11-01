@@ -1,6 +1,9 @@
 import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes, useParams } from 'react-router';
+// Fonts are bundled and served from our own origin (no third-party font requests).
+import '@fontsource-variable/inter';
+import '@fontsource-variable/bricolage-grotesque/opsz.css';
 import './index.css';
 import { StoreCtx, hostStoreSlug } from './lib/store-context';
 import { StoreLayout } from './store/StoreLayout';

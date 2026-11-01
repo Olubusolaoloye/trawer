@@ -15,7 +15,7 @@ webhookRoutes.post('/paystack', async (c) => {
   const raw = await c.req.text();
   const provider = paymentProvider();
   const valid = provider.verifySignature(raw, c.req.raw.headers);
-  if (!valid) return c.json({ error: 'invalid_signature' }, 401);
+  if (!valid) return c.body(null, 401);
   let evt;
   try {
     evt = provider.parseEvent(raw);

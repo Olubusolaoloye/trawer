@@ -35,7 +35,7 @@ export function createApp() {
         c.set('claims', await verifyAccessToken(bearer));
         c.set('session', { accessToken: bearer, refreshToken: '', expiresAt: tokenExpiry(bearer) });
       } catch {
-        throw new ApiError(401, 'invalid_token');
+        throw new ApiError(401, 'not_authenticated');
       }
       return next();
     }
@@ -72,7 +72,7 @@ export function createApp() {
     const m = c.req.method;
     if (m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS' && !c.req.path.startsWith('/api/webhooks/') && !c.req.path.startsWith('/api/cron/')
         && !c.req.path.startsWith('/api/pos/')) {
-      if (c.req.header('x-trawer') !== '1') throw new ApiError(403, 'csrf');
+      if (c.req.header('x-trawer') !== '1') throw new ApiError(403, 'forbidden');
     }
     await next();
   });

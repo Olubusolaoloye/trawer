@@ -24,8 +24,8 @@
   /* the shop's own colour on storefronts (set at runtime) */
   --color-brand: var(--brand, #0B7A4B);
   --color-brand-ink: var(--brand-ink, #ffffff);
-  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Bricolage Grotesque", Inter, system-ui, sans-serif;
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Inter Variable", system-ui, sans-serif;
   --radius-xl: 14px;
   --radius-2xl: 20px;
   --radius-3xl: 24px;
