@@ -78,8 +78,8 @@ export default function Today() {
         )}
         <Link to="orders" className="space-y-1.5 rounded-2xl border border-line bg-white p-4"><p className="text-sm font-semibold text-muted">{t('dash.orders')}</p><p className="font-display text-[28px] font-extrabold">{data.orders_today}</p>
           <p className="text-[13px] text-body">{t('dash.toPackOnWay', { a: data.to_pack, b: data.on_the_way })}</p></Link>
-        <div className="space-y-1.5 rounded-2xl bg-red-50 p-4"><p className="text-sm font-bold text-red-ink">{t('dash.owedToYou')}</p><p className="num font-display text-[28px] font-extrabold">{short(data.owed_kobo)}</p>
-          <p className="text-[13px] text-body">{data.late_kobo > 0 ? t('dash.lateAmount', { amount: short(data.late_kobo) }) : t('dash.nothingLate')}</p></div>
+        <Link to="debtors" className="space-y-1.5 rounded-2xl bg-red-50 p-4"><p className="text-sm font-bold text-red-ink">{t('dash.owedToYou')}</p><p className="num font-display text-[28px] font-extrabold">{short(data.owed_kobo)}</p>
+          <p className="text-[13px] text-body">{data.late_kobo > 0 ? t('dash.lateAmount', { amount: short(data.late_kobo) }) : t('dash.nothingLate')}</p></Link>
       </section>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">

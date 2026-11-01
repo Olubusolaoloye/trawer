@@ -98,3 +98,62 @@ test('owner connects WhatsApp in settings (token stays hidden, MFA asked)', asyn
   await expect(page.getByText(/Connected/)).toBeVisible();
   await expect(page.getByLabel('Access token')).toHaveValue('');
 });
+
+test('credit sale: owner sells on credit → debtors book → shareable invoice + PDF', async ({ page, request }) => {
+  // A fresh pending order for a seeded buyer (placed the way the WhatsApp bot does, as the service role).
+  const pg = await import('pg');
+  const c = new pg.default.Client({ connectionString: process.env.E2E_DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/trawer_dev' });
+  await c.connect();
+  await c.query('begin');
+  await c.query(`select set_config('request.jwt.claims', '{"role":"service_role"}', true)`);
+  await c.query('set local role service_role');
+  const { rows: [pick] } = await c.query(`
+    select b.id business_id, cu.id customer_id, cu.name, v.id variant_id, pu.unit_id
+    from businesses b join customers cu on cu.business_id = b.id and cu.phone = '+2348090000003'
+    join product_variants v on v.business_id = b.id and v.is_active
+    join stock_levels sl on sl.variant_id = v.id and sl.available >= 2
+    join product_units pu on pu.product_id = v.product_id and pu.is_base
+    where b.slug = 'balogun' limit 1`);
+  const { rows: [placed] } = await c.query(`select public.place_order($1::jsonb) o`, [JSON.stringify({
+    business_id: pick.business_id, channel: 'whatsapp', customer_id: pick.customer_id,
+    items: [{ variant_id: pick.variant_id, unit_id: pick.unit_id, qty: 2 }], delivery_method: 'pickup',
+  })]);
+  await c.query('commit');
+  const order = placed.o;
+
+  await page.goto('/dashboard');
+  await signIn(page, '+2348030000001');
+  await page.getByText("You've taken today").waitFor();
+  const base = page.url().replace(/\/$/, '');
+  await page.goto(`${base}/orders/${order.id}`);
+  await expect(page.getByRole('heading', { name: 'Sell on credit' })).toBeVisible();
+  await page.getByRole('button', { name: /Confirm on credit/ }).click();
+  await expect(page.getByRole('heading', { name: 'On credit' })).toBeVisible();
+
+  // Invoice: create, then open the public page from the documents list.
+  await page.getByRole('button', { name: /Create invoice/ }).click();
+  const view = page.getByRole('link', { name: /^View INV-/ });
+  await expect(view).toBeVisible();
+  const invoiceUrl = new URL((await view.getAttribute('href'))!, page.url()).toString();
+  await expect(page.getByRole('link', { name: /^Send on WhatsApp INV-/ })).toHaveAttribute('href', /^https:\/\/wa\.me\/\?text=/);
+
+  // Debtors book lists the buyer with this order.
+  await page.goto(`${base}/debtors`);
+  await expect(page.getByRole('heading', { name: 'Who owes you' })).toBeVisible();
+  await expect(page.getByRole('link', { name: `#${order.order_number}` })).toBeVisible();
+  await page.getByRole('link', { name: /Statement/ }).first().click();
+  await expect(page.getByText('Bought on credit').first()).toBeVisible();
+
+  // Public invoice: no sign-in needed, balance shown, no phone numbers, PDF downloads.
+  await page.context().clearCookies();
+  await page.goto(invoiceUrl);
+  await expect(page.getByRole('heading', { name: 'Invoice' })).toBeVisible();
+  await expect(page.getByText('Balance to pay')).toBeVisible();
+  await expect(page.getByText(/\+234|0803/)).toHaveCount(0);
+  const pdfHref = await page.getByRole('link', { name: 'Download PDF' }).getAttribute('href');
+  const pdf = await request.get(pdfHref!);
+  expect(pdf.status()).toBe(200);
+  expect(pdf.headers()['content-type']).toBe('application/pdf');
+  expect((await pdf.body()).subarray(0, 5).toString()).toBe('%PDF-');
+  await c.end();
+});

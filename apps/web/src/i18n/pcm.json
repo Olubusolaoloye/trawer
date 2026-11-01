@@ -104,5 +104,20 @@
   "dash.goodAfternoon": "Good afternoon",
   "dash.goodMorning": "Good morning",
   "dash.goodEvening": "Good evening",
-  "dash.waitingWholesaleOne": "1 wholesaler dey wait"
+  "dash.waitingWholesaleOne": "1 wholesaler dey wait",
+  "doc.balanceToPay": "Wetin remain to pay",
+  "doc.paidInFull": "You don pay finish",
+  "doc.downloadPdf": "Download PDF",
+  "doc.payByTransfer": "Pay by bank transfer",
+  "debt.title": "Who dey owe you",
+  "debt.total": "Money wey dem owe you",
+  "debt.overdue": "E don pass time",
+  "debt.none": "Nobody dey owe you. 🎉",
+  "debt.remind": "Remind am for WhatsApp",
+  "debt.reminded": "We don remind am",
+  "credit.title": "Sell am on credit",
+  "credit.confirm": "Confirm am on credit",
+  "credit.dueDate": "Make e pay by",
+  "docs.share": "Send am for WhatsApp",
+  "order.getInvoice": "Collect invoice"
 }

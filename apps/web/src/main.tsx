@@ -21,6 +21,7 @@ import { LOCALES, setLocale, type Locale } from './i18n';
 const Dashboard = lazy(() => import('./dashboard/DashboardApp'));
 const Landing = lazy(() => import('./Landing'));
 const TrackPage = lazy(() => import('./TrackPage'));
+const InvoicePage = lazy(() => import('./InvoicePage'));
 
 function storeRoutes() {
   return (
@@ -49,6 +50,7 @@ function App() {
     return (
       <Routes>
         <Route path="/t/:token" element={lazyEl(<TrackPage />)} />
+        <Route path="/i/:token" element={lazyEl(<InvoicePage />)} />
         <Route path="/" element={<StoreCtx.Provider value={{ slug: subdomainSlug, base: '' }}><StoreLayout /></StoreCtx.Provider>}>{storeRoutes()}</Route>
       </Routes>
     );
@@ -57,6 +59,7 @@ function App() {
     <Routes>
       <Route path="/" element={lazyEl(<Landing />)} />
       <Route path="/t/:token" element={lazyEl(<TrackPage />)} />
+      <Route path="/i/:token" element={lazyEl(<InvoicePage />)} />
       <Route path="/s/:slug" element={<PathStore />}>{storeRoutes()}</Route>
       <Route path="/dashboard/*" element={lazyEl(<Dashboard />)} />
     </Routes>

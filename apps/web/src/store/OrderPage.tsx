@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { Check, Copy, ShieldCheck } from 'lucide-react';
+import { Check, Copy, FileText, ShieldCheck } from 'lucide-react';
 import { api } from '../lib/api';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { formatDate, formatNaira, cx } from '../lib/format';
@@ -188,8 +188,25 @@ export function OrderPage() {
             <p key={i} className="text-[13px] text-muted">{formatDate(p.received_at, true)} · {formatNaira(p.amount_kobo)}</p>
           ))}
         </section>
+        {(o.status === 'confirmed' || o.status === 'completed') && <InvoiceLink orderId={o.id} />}
         <p className="rounded-2xl bg-indigo-50 p-4 text-sm text-indigo">{t('order.whatsappUpdates')}</p>
       </div>
     </div>
+  );
+}
+
+/** Opens the buyer's shareable invoice (issued on first request). */
+function InvoiceLink({ orderId }: { orderId: string }) {
+  const get = useMutation(async () => {
+    const r = await api<{ token: string }>(`/api/orders/${orderId}/invoice`, { json: {} });
+    window.location.assign(`/i/${r.token}`);
+  });
+  return (
+    <>
+      <Button variant="secondary" className="w-full" pending={get.pending} onClick={() => void get.run()}>
+        <FileText className="size-5" aria-hidden />{t('order.getInvoice')}
+      </Button>
+      <ErrorNote error={get.error} />
+    </>
   );
 }

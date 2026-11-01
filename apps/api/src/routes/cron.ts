@@ -27,6 +27,11 @@ cronRoutes.post('/expire-reservations', async (c) => {
 });
 
 cronRoutes.post('/notifications', async (c) => c.json(await drainNotifications()));
+/** Daily (≈09:00 Africa/Lagos): queue debt reminders, then send them. */
+cronRoutes.post('/debt-reminders', async (c) => {
+  const queued = await withService(async (tx) => (await one<{ n: number }>(tx, `select public.schedule_debt_reminders() n`))!.n);
+  return c.json({ queued, ...(await drainNotifications(200)) });
+});
 cronRoutes.post('/whatsapp-catalog', async (c) => c.json(await syncWhatsAppCatalogs()));
 
 /** Send due notifications: free text inside the 24-hour window, approved template outside it. */

@@ -51,5 +51,6 @@ configure phone auth with Termii, and use Paystack test keys.
 
 5. Schedule the jobs every minute (Supabase: `pg_cron` + `pg_net`, or any scheduler):
    `POST /api/cron/notifications`, `POST /api/cron/whatsapp-catalog` (every 15 min) and, where
-   pg_cron is not available, `POST /api/cron/expire-reservations`, each with
+   pg_cron is not available, `POST /api/cron/expire-reservations`; plus once a day
+   `POST /api/cron/debt-reminders` (WhatsApp reminders for overdue credit sales), each with
    `Authorization: Bearer $CRON_SECRET`.

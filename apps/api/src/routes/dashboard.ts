@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { onboardingInput, paymentMethod, phoneSchema, productInput, staffRole, uuid } from '@trawer/core/schemas';
-import { many, one, withUser } from '../db';
+import { many, one, withService, withUser } from '../db';
+import { logError } from '../log';
+import { ensureVirtualAccount } from '../payments';
 import { ApiError, body, query, requireUser, type AppEnv, type Ctx } from '../http';
 import { createProduct } from '../products';
 import { imageUrl, putImage } from '../storage';
@@ -368,7 +370,7 @@ dashboardRoutes.get('/:bid/orders/:oid', (c) => asStaff(c, async (tx) => {
   const order = (await one(tx, `select public.get_order($1) as r`, [oid]))?.r;
   if (!order) throw new ApiError(404, 'not_found');
   const [customer, payments] = await Promise.all([
-    order.customer_id ? one(tx, `select id, name, phone, buyer_type, wholesale_status from customers where id = $1`, [order.customer_id]) : null,
+    order.customer_id ? one(tx, `select id, name, business_name, phone, buyer_type, wholesale_status from customers where id = $1`, [order.customer_id]) : null,
     many(tx, `select id, method, amount_kobo, received_at, note from payments where order_id = $1 order by received_at`, [oid]),
   ]);
   return c.json({ order, customer, payments });
@@ -471,3 +473,42 @@ dashboardRoutes.post('/:bid/stock-alerts/:aid/resolve', (c) => asStaff(c, async 
   if (r.rowCount === 0) throw new ApiError(403, 'permission_denied');
   return c.json({ ok: true });
 }));
+
+// ------------------------------------------------------------------------------------------
+// Debtors' book, credit, invoices
+// ------------------------------------------------------------------------------------------
+dashboardRoutes.get('/:bid/debtors', (c) => asStaff(c, async (tx, b) =>
+  c.json((await one(tx, `select public.debtors_report($1) r`, [b]))!.r)));
+
+dashboardRoutes.get('/:bid/customers/:cid/statement', (c) => asStaff(c, async (tx) =>
+  c.json((await one(tx, `select public.customer_statement($1) r`, [c.req.param('cid')]))!.r)));
+
+dashboardRoutes.post('/:bid/orders/:oid/credit', async (c) => {
+  const input = await body(c, z.object({ due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), note: z.string().max(300).optional() }));
+  const r = await asStaff(c, async (tx) => (await one(tx, `select public.confirm_on_credit($1, $2::date, $3) r`, [c.req.param('oid'), input.due_date ?? null, input.note ?? null]))!.r);
+  await payToAccount(c.req.param('oid'));
+  return c.json(r);
+});
+
+/** Debtors pay by transfer: make sure the buyer has a dedicated account to show on the invoice. */
+async function payToAccount(orderId: string): Promise<void> {
+  const o = await withService((tx) => one<{ customer_id: string | null }>(tx, `select customer_id from orders where id = $1`, [orderId]));
+  if (o?.customer_id) await ensureVirtualAccount(o.customer_id).catch((e) => logError(e, { at: 'pay_to_account' }));
+}
+
+dashboardRoutes.post('/:bid/orders/:oid/due-date', async (c) => {
+  const input = await body(c, z.object({ due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }));
+  return asStaff(c, async (tx) => { await tx.query(`select public.set_due_date($1, $2::date)`, [c.req.param('oid'), input.due_date]); return c.json({ ok: true }); });
+});
+
+dashboardRoutes.post('/:bid/orders/:oid/remind', (c) => asStaff(c, async (tx) =>
+  c.json({ queued: (await one(tx, `select public.remind_debtor($1) r`, [c.req.param('oid')]))!.r })));
+
+dashboardRoutes.post('/:bid/orders/:oid/invoice', async (c) => {
+  const r = await asStaff(c, async (tx) => (await one(tx, `select public.order_invoice($1) r`, [c.req.param('oid')]))!.r);
+  await payToAccount(c.req.param('oid'));
+  return c.json(r);
+});
+
+dashboardRoutes.get('/:bid/orders/:oid/documents', (c) => asStaff(c, async (tx) =>
+  c.json({ documents: await many(tx, `select kind, number, public_token token, issued_at from invoices where order_id = $1 order by issued_at`, [c.req.param('oid')]) })));

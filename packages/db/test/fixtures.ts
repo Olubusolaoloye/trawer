@@ -43,4 +43,7 @@ export async function populateBusiness(biz: TestBusiness): Promise<void> {
   await rpc(cashier, 'public.submit_cash_up', [biz.id, day, 250000, d!.id, null]);
   // messaging (order notifications are queued by the order above)
   await sql(`insert into whatsapp_sessions (business_id, wa_phone, customer_id, last_inbound_at) values ($1, $2, $3, now())`, [biz.id, buyer.phone, buyer.customerId]);
+  // invoices + debtors book
+  await rpc(biz.owner, 'public.order_invoice', [o.id]);
+  await rpc(biz.owner, 'public.confirm_on_credit', [o.id, null, null]);
 }

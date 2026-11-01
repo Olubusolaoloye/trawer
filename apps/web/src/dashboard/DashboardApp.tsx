@@ -15,6 +15,7 @@ const Orders = lazy(() => import('./Orders'));
 const Customers = lazy(() => import('./Customers'));
 const SettingsPage = lazy(() => import('./SettingsPage'));
 const Tills = lazy(() => import('./Tills'));
+const Debtors = lazy(() => import('./Debtors'));
 
 interface Me { user: { id: string; phone: string; aal: string } | null; staff: { business_id: string; role: string; name: string; slug: string }[] }
 
@@ -161,6 +162,9 @@ function BusinessShell() {
             <span className="size-2" aria-hidden /><span className="flex-1">{t('dash.tills')}</span>
             {data.stats.conflicts > 0 && <span className="rounded-full bg-red px-2 text-xs font-bold">{data.stats.conflicts}</span>}
           </NavLink>
+          <NavLink to={`${base}/debtors`} className={({ isActive }) => cx('flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px]', isActive ? 'bg-ink-2 font-bold' : 'font-semibold text-[#E7E2D6] hover:bg-ink-2')}>
+            <span className="size-2" aria-hidden /><span className="flex-1">{t('debt.title')}</span>
+          </NavLink>
           {data.permissions.includes('products.draft') && (
             <Link to={`${base}/products/new`} className="mt-auto flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green font-bold"><Plus className="size-5" aria-hidden />{t('dash.newProduct')}</Link>
           )}
@@ -184,6 +188,7 @@ function BusinessShell() {
               <Route path="customers/*" element={<Customers />} />
               <Route path="settings/*" element={<SettingsPage />} />
               <Route path="tills" element={<Tills />} />
+              <Route path="debtors/*" element={<Debtors />} />
             </Routes>
           </Suspense>
         </main>

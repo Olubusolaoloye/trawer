@@ -76,3 +76,10 @@ orderRoutes.post('/:id/cancel', async (c) => {
   await withUser(claims, (tx) => tx.query(`select public.cancel_order($1, $2)`, [orderId(c), reason ?? 'cancelled by buyer']));
   return c.json({ ok: true });
 });
+
+/** The buyer's shareable invoice for their order. */
+orderRoutes.post('/:id/invoice', async (c) => {
+  const claims = requireUser(c);
+  const r = await withUser(claims, (tx) => one<{ r: { number: string; token: string } }>(tx, `select public.order_invoice($1) r`, [orderId(c)]));
+  return c.json(r!.r);
+});

@@ -13,6 +13,7 @@ import { posRoutes } from './routes/pos';
 import { whatsappWebhook } from './routes/whatsapp-webhook';
 import { cronRoutes } from './routes/cron';
 import { trackRoutes } from './routes/track';
+import { docRoutes } from './routes/docs';
 import { dashboardRoutes } from './routes/dashboard';
 import { devRoutes } from './routes/dev';
 import { env } from './env';
@@ -95,6 +96,7 @@ export function createApp() {
   app.route('/api/webhooks', webhookRoutes);
   app.route('/api/cron', cronRoutes);
   app.route('/api/track', trackRoutes);
+  app.route('/api/docs', docRoutes);
   app.route('/api/pos', posRoutes);
   app.route('/api/biz', dashboardRoutes);
   if (env.NODE_ENV !== 'production') app.route('/api/dev', devRoutes);

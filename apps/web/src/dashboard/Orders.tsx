@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Route, Routes, useParams, useSearchParams } from 'react-router';
-import { LayoutGrid, List } from 'lucide-react';
+import { FileText, LayoutGrid, List, MessageCircle } from 'lucide-react';
 import { nairaToKobo } from '@trawer/core/money';
 import { api } from '../lib/api';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
@@ -159,9 +159,101 @@ function OrderDetail() {
           </form>
         </Card>
       )}
+      {o.customer_id && (o.status === 'pending' || o.status === 'confirmed' || o.status === 'completed') && <CreditCard order={o} customerName={data.customer?.business_name ?? data.customer?.name ?? ''} orderKey={key} />}
+      {(o.status === 'confirmed' || o.status === 'completed') && <DocumentsCard orderId={oid} orderNumber={o.order_number} />}
       {b.can('orders.manage') && o.status === 'pending' && (
         <><ErrorNote error={cancel.error} /><Button variant="danger" className="w-full" pending={cancel.pending} onClick={() => void cancel.run()}>{t('board.cancelRelease')}</Button></>
       )}
     </div>
+  );
+}
+
+const isoDay = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+const plusDays = (n: number) => isoDay(new Date(Date.now() + n * 86_400_000));
+
+/** Sell on credit (pending order) or manage the due date / reminders of a credit sale. */
+function CreditCard({ order: o, customerName, orderKey }: { order: any; customerName: string; orderKey: string }) {
+  const b = useBiz();
+  const [due, setDue] = useState<string>(o.due_date ?? plusDays(7));
+  const [note, setNote] = useState('');
+  const [reminded, setReminded] = useState(false);
+  const refresh = async () => { await invalidate(orderKey); void invalidate(`/api/biz/${b.business.id}/`); };
+  const credit = useMutation(async () => { await api(`${orderKey}/credit`, { json: { due_date: due, note: note || undefined } }); await refresh(); });
+  const setDueDate = useMutation(async () => { await api(`${orderKey}/due-date`, { json: { due_date: due } }); await refresh(); });
+  const remind = useMutation(async () => { await api(`${orderKey}/remind`, { json: {} }); setReminded(true); });
+  if (!b.can('credit.manage')) return null;
+  const needsApproval = String(o.needs_attention ?? '').includes('credit_sale_needs_approval');
+
+  if (!o.is_credit || needsApproval || o.status === 'pending') {
+    if (o.balance_kobo <= 0) return null;
+    return (
+      <Card strong>
+        <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void credit.run(); }}>
+          <h2 className="font-display text-xl font-extrabold">{t('credit.title')}</h2>
+          <p className="text-sm text-body">{t('credit.body', { name: customerName || '—' })}</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Field label={t('credit.dueDate')} htmlFor="due"><Input id="due" type="date" required min={isoDay(new Date())} value={due} onChange={(e) => setDue(e.target.value)} /></Field>
+            <Field label={t('credit.note')} htmlFor="cnote"><Input id="cnote" maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+          </div>
+          <ErrorNote error={credit.error} />
+          <Button type="submit" variant="secondary" className="w-full" pending={credit.pending}>{t('credit.confirm')} · {formatNaira(o.balance_kobo)}</Button>
+        </form>
+      </Card>
+    );
+  }
+  if (o.balance_kobo <= 0) return null;
+  const late = o.due_date && o.due_date < isoDay(new Date());
+  return (
+    <Card className={cx('space-y-3', late && 'border-l-4 border-l-red')}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-display text-xl font-extrabold">{t('credit.onCredit')}</h2>
+        {o.due_date && <Badge tone={late ? 'bad' : 'warn'}>{t(late ? 'doc.overdue' : 'doc.due', { date: formatDate(o.due_date) })}</Badge>}
+      </div>
+      <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); void setDueDate.run(); }}>
+        <Field label={t('credit.changeDue')} htmlFor="due2"><Input id="due2" type="date" required value={due} onChange={(e) => setDue(e.target.value)} /></Field>
+        <Button type="submit" variant="secondary" pending={setDueDate.pending}>{t('credit.save')}</Button>
+      </form>
+      {reminded
+        ? <p className="font-bold text-green-ink">{t('debt.reminded')}</p>
+        : <Button variant="secondary" onClick={() => void remind.run()} pending={remind.pending}><MessageCircle className="size-4" aria-hidden />{t('debt.remind')}</Button>}
+      <ErrorNote error={setDueDate.error ?? remind.error} />
+    </Card>
+  );
+}
+
+interface DocRow { kind: 'invoice' | 'receipt'; number: string; token: string; issued_at: string }
+
+/** Invoice + receipts for the order, with view / PDF / WhatsApp share. */
+function DocumentsCard({ orderId, orderNumber }: { orderId: string; orderNumber: number }) {
+  const b = useBiz();
+  const key = `/api/biz/${b.business.id}/orders/${orderId}/documents`;
+  const { data } = useApi<{ documents: DocRow[] }>(key);
+  const make = useMutation(async () => { await api(`/api/biz/${b.business.id}/orders/${orderId}/invoice`, { json: {} }); await invalidate(key); });
+  if (!data) return null;
+  const hasInvoice = data.documents.some((d) => d.kind === 'invoice');
+  const share = (d: DocRow) => {
+    const url = `${location.origin}/i/${d.token}`;
+    const text = t('docs.shareText', { shop: b.business.name, kind: t(`doc.${d.kind}` as MessageKey), number: d.number, url });
+    return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  };
+  return (
+    <Card className="space-y-3">
+      <h2 className="font-display text-xl font-extrabold">{t('docs.title')}</h2>
+      <ul className="divide-y divide-line-soft">
+        {data.documents.map((d) => (
+          <li key={d.token} className="flex flex-wrap items-center gap-2 py-2.5">
+            <FileText className="size-5 text-muted" aria-hidden />
+            <span className="flex-1"><b className="num">{d.number}</b> <span className="text-sm text-muted">· {t(`doc.${d.kind}` as MessageKey)} · {formatDate(d.issued_at)}</span></span>
+            <a href={`/i/${d.token}`} target="_blank" rel="noopener" className="text-sm font-bold underline" aria-label={`${t('docs.view')} ${d.number}`}>{t('docs.view')}</a>
+            <a href={`/api/docs/${d.token}/pdf`} target="_blank" rel="noopener" className="text-sm font-bold underline" aria-label={`${t('docs.pdf')} ${d.number}`}>{t('docs.pdf')}</a>
+            <a href={share(d)} target="_blank" rel="noopener" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-green px-3 text-sm font-bold text-white" aria-label={`${t('docs.share')} ${d.number}`}>
+              <MessageCircle className="size-4" aria-hidden />{t('docs.share')}
+            </a>
+          </li>
+        ))}
+      </ul>
+      {!hasInvoice && <Button variant="secondary" onClick={() => void make.run()} pending={make.pending} aria-label={`${t('docs.makeInvoice')} #${orderNumber}`}>{t('docs.makeInvoice')}</Button>}
+      <ErrorNote error={make.error} />
+    </Card>
   );
 }
