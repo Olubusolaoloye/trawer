@@ -14,6 +14,8 @@ import {
 } from './helpers';
 import { populateBusiness } from './fixtures';
 
+const PUBLIC_CATALOGUE = new Set(['products', 'product_variants', 'variant_images', 'product_units', 'units']);
+
 let A: TestBusiness;
 let B: TestBusiness;
 
@@ -62,8 +64,17 @@ describe('tenant isolation', () => {
     for (const { table_name } of tables) {
       const [total] = await sql(`select count(*)::int as n from public.${table_name} where business_id = $1`, [B.id]);
       if (total!.n > 0) populated += 1;
-      const visible = await q(A.owner.mfa, `select count(*)::int as n from public.${table_name} where business_id = $1`, [B.id]);
-      if (visible[0]!.n > 0) leaks.push(`${table_name} (${visible[0]!.n} rows)`);
+      try {
+        const sqlText = `select count(*)::int as n from public.${table_name} where business_id = $1`;
+        const visible = await q(A.owner.mfa, sqlText, [B.id]);
+        // Storefront catalogue tables are public by design: A may see exactly what an anonymous
+        // shopper sees (active products), never more (drafts, archived, private rows).
+        const allowed = PUBLIC_CATALOGUE.has(table_name) ? (await q(ANON, sqlText, [B.id]))[0]!.n : 0;
+        if (visible[0]!.n > allowed) leaks.push(`${table_name} (${visible[0]!.n} rows, ${allowed} public)`);
+      } catch (err) {
+        // no SELECT grant at all is also isolation
+        if ((err as { code?: string }).code !== '42501') throw err;
+      }
     }
     expect(leaks).toEqual([]);
     expect(populated).toBeGreaterThan(5);
