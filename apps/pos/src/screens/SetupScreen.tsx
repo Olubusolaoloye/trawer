@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { authed, setBinding, type DeviceBinding } from '../session';
-import { Button, Card, ErrorText, Field, colors, s } from '../components/ui';
+import { Button, Card, ErrorText, Field, colors, fonts, s } from '../components/ui';
 
 interface Me { user: { id: string }; staff: { business_id: string; name: string; role: string }[] }
 interface Device { id: string; name: string; location: string; last_sync_at: string | null }
@@ -36,7 +36,7 @@ export function SetupScreen({ onReady }: { onReady: (b: DeviceBinding) => void }
           <Text style={s.label}>Which till is this?</Text>
           <FlatList data={devices} keyExtractor={(d) => d.id} contentContainerStyle={{ gap: 10 }} renderItem={({ item }) => (
             <Pressable accessibilityRole="button" onPress={() => void bind(item.id)}>
-              <Card><Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink }}>{item.name}</Text><Text style={s.muted}>{item.location}</Text></Card>
+              <Card><Text style={{ fontSize: 18, fontFamily: fonts.black, color: colors.ink }}>{item.name}</Text><Text style={s.muted}>{item.location}</Text></Card>
             </Pressable>
           )} />
           {(biz.role === 'owner' || biz.role === 'manager') && (

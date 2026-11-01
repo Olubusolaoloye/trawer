@@ -18,6 +18,15 @@ Status legend: ✅ done · 🟡 partial · ⬜ not started
 | 10 | Reports | ⬜ | |
 | 11 | Hardening | ⬜ | |
 
+### Design: Market Light (applied across web + POS)
+Design canvas: claude.ai artifact "Trawer — UI/UX Design" (17 screens, flows, design system).
+Tokens: ink #0E1411 · paper #FAF7F0 · green #0B7A4B (money/actions) · indigo #23308C (wholesale only)
+· gold #F2B705 (highlight fill only) · red #C8261B (act now) · each storefront uses the shop's brand colour.
+Type: Bricolage Grotesque (display, prices) + Inter (UI). Pidgin (`pcm`) translations for storefront + Today.
+Backed by new `dashboard_today()` (Today command centre) and buyer `owing_kobo` / saved account on store info.
+Shown in the design but waiting for their milestones (no placeholder buttons in the app): AI snap-to-upload,
+debt reminders (M7), WhatsApp bot (M6), rider/delivery steps (M8), Instagram posting (M9).
+
 ### Not yet built inside finished milestones
 - Snap-to-upload (AI draft), bulk CSV/Excel import and barcode label PDFs are linked from the UI
   but their endpoints arrive with later work (product creation API they will call is done).

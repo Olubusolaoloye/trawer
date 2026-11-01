@@ -63,6 +63,12 @@ importers:
 
   apps/pos:
     dependencies:
+      '@expo-google-fonts/bricolage-grotesque':
+        specifier: 0.4.1
+        version: 0.4.1
+      '@expo-google-fonts/inter':
+        specifier: 0.4.2
+        version: 0.4.2
       '@morrowdigital/watermelondb-expo-plugin':
         specifier: 2.3.3
         version: 2.3.3
@@ -84,6 +90,9 @@ importers:
       expo-constants:
         specifier: ~58.0.14
         version: 58.0.14(expo@58.0.22)(react-native@0.88.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.3.0))(typescript@7.0.2)
+      expo-font:
+        specifier: ~58.0.11
+        version: 58.0.11(expo@58.0.22)(react-native@0.88.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.3.0))(react@19.3.0)
       expo-linking:
         specifier: ~58.0.15
         version: 58.0.15(expo@58.0.22)(react-native@0.88.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.3.0))(react@19.3.0)(typescript@7.0.2)
@@ -746,6 +755,12 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@expo-google-fonts/bricolage-grotesque@0.4.1':
+    resolution: {integrity: sha512-uijLLg+thOrFgw+gXtYA3dQJTBqqqleabcNFpamaYXqUUcbFe0J18C+4nfL0CyGzSJUicxUBLY4Zv7jdHmTGMA==}
+
+  '@expo-google-fonts/inter@0.4.2':
+    resolution: {integrity: sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ==}
 
   '@expo/cli@58.1.18':
     resolution: {integrity: sha512-voZUcir9mEwvLKBNqQM6Jy2Yp67z8ONmcINXb6ZrLMayb7yxzwvEnN0eeH8ADzUABKL288pv1eJ1WRqtYxXQ/Q==}
@@ -4385,6 +4400,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@expo-google-fonts/bricolage-grotesque@0.4.1': {}
+
+  '@expo-google-fonts/inter@0.4.2': {}
 
   '@expo/cli@58.1.18(@expo/dom-webview@58.0.2)(expo-constants@58.0.14(expo@58.0.22)(react-native@0.88.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.3.0))(typescript@7.0.2))(expo-font@58.0.11(expo@58.0.22)(react-native@0.88.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.3.0))(react@19.3.0))(expo@58.0.22)(react-dom@19.3.1(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.3.0))(react@19.3.0)(typescript@7.0.2)':
     dependencies:

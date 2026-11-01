@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, View } from 'react-native';
 import { requestCode, verifyCode } from '../session';
-import { Button, ErrorText, Field, s } from '../components/ui';
+import { Button, ErrorText, Field, colors, fonts, s } from '../components/ui';
 
 export function SignInScreen({ onSignedIn }: { onSignedIn: (r: { userId: string; staffBusinessIds: string[] }) => void }) {
   const [phone, setPhone] = useState('');
@@ -16,8 +16,14 @@ export function SignInScreen({ onSignedIn }: { onSignedIn: (r: { userId: string;
     finally { setPending(false); }
   };
   return (
-    <SafeAreaView style={{ flex: 1, padding: 20, justifyContent: 'center', gap: 16 }}>
-      <Text style={s.h1}>Trawer POS</Text>
+    <SafeAreaView style={{ flex: 1, padding: 24, justifyContent: 'center', gap: 18, backgroundColor: colors.paper }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#fff', fontFamily: fonts.display, fontSize: 22 }}>T</Text>
+        </View>
+        <Text style={[s.h1, { fontSize: 26 }]}>trawer till</Text>
+      </View>
+      <Text style={[s.h1, { fontSize: 34, lineHeight: 38 }]}>Sell at the counter, even offline.</Text>
       {!sent ? (
         <View style={{ gap: 16 }}>
           <Field label="Your phone number" keyboardType="phone-pad" autoComplete="tel" value={phone} onChangeText={setPhone} placeholder="0803 123 4567" />

@@ -10,6 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@expo-google-fonts/bricolage-grotesque": "0.4.1",
+    "@expo-google-fonts/inter": "0.4.2",
     "@morrowdigital/watermelondb-expo-plugin": "2.3.3",
     "@nozbe/watermelondb": "0.28.0",
     "@trawer/core": "workspace:*",
@@ -17,6 +19,7 @@
     "expo-build-properties": "~58.0.12",
     "expo-camera": "~58.0.14",
     "expo-constants": "~58.0.14",
+    "expo-font": "~58.0.11",
     "expo-linking": "~58.0.15",
     "expo-network": "~58.0.4",
     "expo-secure-store": "~58.0.2",
