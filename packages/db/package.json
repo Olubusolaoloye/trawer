@@ -17,7 +17,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "pg": "^8.16.0"
+    "pg": "^8.16.0",
+    "@trawer/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

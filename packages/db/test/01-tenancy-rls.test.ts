@@ -14,7 +14,7 @@ import {
 } from './helpers';
 import { populateBusiness } from './fixtures';
 
-const PUBLIC_CATALOGUE = new Set(['products', 'product_variants', 'variant_images', 'product_units', 'units']);
+const PUBLIC_CATALOGUE = new Set(['products', 'product_variants', 'variant_images', 'product_units', 'units', 'volume_breaks']);
 
 let A: TestBusiness;
 let B: TestBusiness;
