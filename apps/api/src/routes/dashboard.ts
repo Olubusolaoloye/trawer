@@ -390,3 +390,41 @@ dashboardRoutes.post('/:bid/tiers', async (c) => {
     return c.json(r, 201);
   });
 });
+
+// ------------------------------------------------------------------------------------------
+// Tills (devices), allocations, stock conflict alerts
+// ------------------------------------------------------------------------------------------
+dashboardRoutes.get('/:bid/devices', (c) => asStaff(c, async (tx, b) => {
+  const devices = await many(tx, `
+    select d.id, d.name, d.platform, d.status, d.last_sync_at, l.name location,
+      coalesce((select json_agg(json_build_object('variant_id', da.variant_id, 'qty', da.qty, 'name', p.name,
+                 'label', nullif(concat_ws(' / ', v.colour, v.size), ''), 'sku', v.sku) order by p.name)
+               from device_allocations da join product_variants v on v.id = da.variant_id join products p on p.id = v.product_id
+               where da.device_id = d.id and da.qty > 0), '[]') allocations
+    from devices d join locations l on l.id = d.location_id where d.business_id = $1 order by d.name`, [b]);
+  return c.json({ devices });
+}));
+
+dashboardRoutes.post('/:bid/devices/:did/allocate', async (c) => {
+  const input = await body(c, z.object({ variant_id: uuid, qty: z.number().int().refine((n) => n !== 0) }));
+  return asStaff(c, async (tx) => {
+    await tx.query(`select public.allocate_to_device($1, $2, $3)`, [c.req.param('did'), input.variant_id, input.qty]);
+    return c.json({ ok: true });
+  });
+});
+
+dashboardRoutes.get('/:bid/stock-alerts', (c) => asStaff(c, async (tx, b) => {
+  const alerts = await many(tx, `
+    select a.id, a.kind, a.qty, a.message, a.created_at, a.order_id, o.order_number, d.name device,
+           p.name product, nullif(concat_ws(' / ', v.colour, v.size), '') label, a.variant_id, v.product_id
+    from stock_alerts a left join orders o on o.id = a.order_id left join devices d on d.id = a.device_id
+    left join product_variants v on v.id = a.variant_id left join products p on p.id = v.product_id
+    where a.business_id = $1 and a.resolved_at is null order by a.created_at desc limit 100`, [b]);
+  return c.json({ alerts });
+}));
+
+dashboardRoutes.post('/:bid/stock-alerts/:aid/resolve', (c) => asStaff(c, async (tx, b) => {
+  const r = await tx.query(`update stock_alerts set resolved_at = now(), resolved_by = auth.uid() where id = $1 and business_id = $2 and resolved_at is null`, [c.req.param('aid'), b]);
+  if (r.rowCount === 0) throw new ApiError(403, 'permission_denied');
+  return c.json({ ok: true });
+}));

@@ -9,6 +9,7 @@ import { authRoutes } from './routes/auth';
 import { storeRoutes } from './routes/store';
 import { orderRoutes } from './routes/orders';
 import { webhookRoutes } from './routes/webhooks';
+import { posRoutes } from './routes/pos';
 import { dashboardRoutes } from './routes/dashboard';
 import { devRoutes } from './routes/dev';
 import { env } from './env';
@@ -27,6 +28,21 @@ export function createApp() {
     c.set('requestId', c.req.header('x-request-id') ?? randomUUID());
     c.set('claims', null);
     c.set('session', null);
+    // Devices (POS) send a bearer token; browsers use httpOnly cookies.
+    const bearer = c.req.header('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+    if (bearer) {
+      try {
+        c.set('claims', await verifyAccessToken(bearer));
+        c.set('session', { accessToken: bearer, refreshToken: '', expiresAt: tokenExpiry(bearer) });
+      } catch {
+        throw new ApiError(401, 'invalid_token');
+      }
+      return next();
+    }
+    if (c.req.path.startsWith('/api/pos/')) {
+      // POS endpoints skip the CSRF check, so they must never accept ambient cookies.
+      return next();
+    }
     const { access, refresh } = readSessionCookies(c);
     let token = access;
     if ((!token || tokenExpiry(token) < Date.now() / 1000 + 30) && refresh) {
@@ -71,6 +87,7 @@ export function createApp() {
   app.route('/api/store', storeRoutes);
   app.route('/api/orders', orderRoutes);
   app.route('/api/webhooks', webhookRoutes);
+  app.route('/api/pos', posRoutes);
   app.route('/api/biz', dashboardRoutes);
   if (env.NODE_ENV !== 'production') app.route('/api/dev', devRoutes);
 

@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Trawer POS",
+    "slug": "trawer-pos",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "shop.trawer.pos",
+      "permissions": ["CAMERA", "BLUETOOTH_SCAN", "BLUETOOTH_CONNECT", "ACCESS_NETWORK_STATE"]
+    },
+    "ios": { "bundleIdentifier": "shop.trawer.pos" },
+    "plugins": [
+      "@morrowdigital/watermelondb-expo-plugin",
+      ["expo-build-properties", { "android": { "kotlinVersion": "2.1.20", "packagingOptions": { "pickFirst": ["**/libc++_shared.so"] } } }],
+      ["expo-camera", { "cameraPermission": "Trawer uses the camera to scan product barcodes." }],
+      ["react-native-ble-plx", { "isBackgroundEnabled": false, "bluetoothAlwaysPermission": "Trawer connects to your Bluetooth receipt printer." }]
+    ],
+    "extra": { "apiUrl": "https://app.trawer.shop" }
+  }
+}

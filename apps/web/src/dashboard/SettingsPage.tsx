@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { api, type ApiError } from '../lib/api';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { Badge, Button, Card, ErrorNote, Field, Input, Select } from '../components/ui';
@@ -62,6 +62,8 @@ export default function SettingsPage() {
           </form>
         </Card>
       )}
+
+      <Link to={`${b.base}/tills`} className="flex min-h-14 items-center justify-between rounded-2xl border bg-white px-4 font-semibold">Tills (POS) & stock alerts <span aria-hidden>›</span></Link>
 
       <Card className="space-y-3">
         <h2 className="font-bold">Locations</h2>

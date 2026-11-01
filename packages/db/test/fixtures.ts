@@ -36,4 +36,9 @@ export async function populateBusiness(biz: TestBusiness): Promise<void> {
   const [cart] = await sql(`insert into carts (business_id, customer_id, channel) values ($1, $2, 'whatsapp') returning id`, [biz.id, buyer.customerId]);
   await sql(`insert into cart_items (business_id, cart_id, variant_id, unit_id, unit_qty) values ($1, $2, $3, $4, 1)`, [biz.id, cart!.id, p.variantIds[0], p.pieceUnitId]);
   await sql(`insert into webhook_events (provider, event_id, business_id, payload, signature_valid) values ('paystack', $1, $2, '{}', true)`, [`evt-${biz.id}`, biz.id]);
+  // POS
+  const cashier = await addStaff(biz, 'cashier');
+  await rpc(cashier, 'public.sync_pos_sale', [JSON.stringify({ device_id: d!.id, client_id: crypto.randomUUID(), items: [{ variant_id: p.variantIds[0], qty: 1, unit_price_kobo: 250000 }], payments: [{ client_id: crypto.randomUUID(), method: 'cash', amount_kobo: 250000 }] })]);
+  const day = (await sql(`select (now() at time zone 'Africa/Lagos')::date::text d`))[0]!.d;
+  await rpc(cashier, 'public.submit_cash_up', [biz.id, day, 250000, d!.id, null]);
 }

@@ -10,7 +10,7 @@ Status legend: ✅ done · 🟡 partial · ⬜ not started
 | 2 | Products, variants, units, ledger + stock functions + tests | ✅ | 20 DB tests: ledger replay = stock_levels, all-or-nothing reservations, idempotent commit/release, device allocation, 40-way concurrency, no deadlocks |
 | 3 | Price resolver + tests | ✅ | SQL `resolve_price` + TS mirror; parity test over 504 combinations; tier prices visible only to approved buyers |
 | 4 | Storefront + checkout + payments (sandbox) | ✅ | `place_order`, Paystack DVA webhook (signed, idempotent), expiry, cancel, **50-way cross-channel concurrency test**; React storefront + dashboard; 12 API tests; 3 Playwright e2e tests; Balogun Fabrics seed |
-| 5 | POS offline + sync + tests | ⬜ | `allocate_to_device` + device tables exist; sync function + Expo app next |
+| 5 | POS offline + sync + tests | ✅ | `sync_pos_sale` (idempotent; allocation → shared pool → recorded conflict, never negative), cash-up; `@trawer/core/pos` engine (multi-cart, offline allocation budget, outbox, receipts); bearer-token POS API; Expo app (WatermelonDB, camera scan, BLE printer, WhatsApp receipt, cash-up); dashboard Tills page. Tests: 9 DB (incl. two-device + online storm), 6 core engine, 5 API (two real engines syncing, lost-ack retry), 2 WatermelonDB repo tests. Android JS bundle builds (Hermes); native APK not built here (no Android SDK) |
 | 6 | WhatsApp bot + notifications | ⬜ | |
 | 7 | Invoices, debtors' book | ⬜ | |
 | 8 | Delivery tracking | ⬜ | |
@@ -43,11 +43,17 @@ Status legend: ✅ done · 🟡 partial · ⬜ not started
 | Paid-after-expiry orders re-reserve stock if available, else are flagged `needs_attention` (money kept). | Never oversell, never lose a payment. |
 | Payments to virtual accounts require the business's Paystack settlement subaccount (`payout_account_missing` otherwise). | "Never hold funds": money settles straight to the trader. |
 
+| POS models use explicit accessors instead of WatermelonDB decorators. | Avoids a Babel decorators transform that conflicts with Expo SDK 58's Babel preset; identical runtime behaviour. |
+| POS auth: phone OTP on the till, tokens returned in the body (`X-Client: pos`) and stored in the keystore; `/api/pos/*` accepts bearer tokens only. | POS endpoints are CSRF-exempt, so they must never accept ambient browser cookies. |
+| Offline sales keep the price the till charged (`price_source = pos_offline`); a mismatch with the current server price flags the order `offline_price_mismatch` for review. Cashier credit sales are flagged `credit_sale_needs_approval`. | The sale already happened; the server records truth and surfaces anomalies instead of rejecting. |
+| POS bootstrap returns up to 20,000 changed variants per call (delta by `updated_at`). | Enough for first sync of most shops; paging for 50k+ catalogues is a hardening item. |
+
 ## How to run the tests
 
 ```bash
 pnpm --filter @trawer/core test      # pure domain logic
 pnpm --filter @trawer/db test        # SQL / RLS / ledger / concurrency (needs local Postgres)
 pnpm --filter @trawer/api test       # API integration
+pnpm --filter @trawer/pos test       # WatermelonDB repositories (LokiJS adapter)
 pnpm --filter @trawer/web build && pnpm --filter @trawer/web e2e   # Playwright against seeded DB
 ```

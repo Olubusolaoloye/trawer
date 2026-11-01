@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { otpSchema, phoneSchema } from '@trawer/core/schemas';
-import { enrollTotp, requestOtp, verifyAccessToken, verifyOtp, verifyTotp } from '../auth';
+import { enrollTotp, refreshSession, requestOtp, verifyAccessToken, verifyOtp, verifyTotp } from '../auth';
 import { many, withUser } from '../db';
 import { ApiError, body, clearSession, clientIp, requireUser, writeSession, type AppEnv } from '../http';
 
@@ -16,11 +16,17 @@ authRoutes.post('/otp', async (c) => {
 authRoutes.post('/verify', async (c) => {
   const { phone, code } = await body(c, z.object({ phone: phoneSchema, code: otpSchema }));
   const session = await verifyOtp(phone, code);
-  writeSession(c, session);
+  const isDevice = c.req.header('x-client') === 'pos';
+  if (!isDevice) writeSession(c, session);
   const claims = await verifyAccessToken(session.accessToken);
   // Link pending staff invites to this phone and audit staff logins.
   const staffOf = await withUser(claims, (tx) => many(tx, `select * from public.staff_sign_in() as business_id`));
-  return c.json({ user: { id: claims.sub, phone: claims.phone, aal: claims.aal }, staffBusinessIds: staffOf.map((r) => r.business_id) });
+  return c.json({
+    user: { id: claims.sub, phone: claims.phone, aal: claims.aal },
+    staffBusinessIds: staffOf.map((r) => r.business_id),
+    // POS devices keep tokens in secure storage instead of cookies.
+    ...(isDevice ? { session } : {}),
+  });
 });
 
 authRoutes.post('/sign-out', (c) => {
@@ -55,4 +61,10 @@ authRoutes.post('/mfa/verify', async (c) => {
   const next = await verifyTotp(s, factorId, code);
   writeSession(c, next);
   return c.json({ aal: 'aal2' });
+});
+
+/** POS devices: exchange a refresh token for a new session (body, not cookies). */
+authRoutes.post('/refresh', async (c) => {
+  const { refresh_token } = await body(c, z.object({ refresh_token: z.string().min(10).max(4000) }));
+  return c.json({ session: await refreshSession(refresh_token) });
 });

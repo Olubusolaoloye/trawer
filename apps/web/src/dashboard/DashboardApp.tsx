@@ -13,6 +13,7 @@ const Products = lazy(() => import('./Products'));
 const Orders = lazy(() => import('./Orders'));
 const Customers = lazy(() => import('./Customers'));
 const SettingsPage = lazy(() => import('./SettingsPage'));
+const Tills = lazy(() => import('./Tills'));
 
 interface Me { user: { id: string; phone: string; aal: string } | null; staff: { business_id: string; role: string; name: string; slug: string }[] }
 
@@ -127,6 +128,7 @@ function BusinessShell() {
               <Route path="orders/*" element={<Orders />} />
               <Route path="customers/*" element={<Customers />} />
               <Route path="settings/*" element={<SettingsPage />} />
+              <Route path="tills" element={<Tills />} />
             </Routes>
           </Suspense>
         </main>
@@ -144,7 +146,7 @@ function HomePage() {
     { label: t('dash.activeProducts'), value: s.products, to: 'products' },
     { label: t('dash.lowStock'), value: s.low_stock, to: 'products?low=1', warn: s.low_stock > 0 },
     { label: t('dash.pendingWholesale'), value: s.pending_wholesale, to: 'customers?pending=1', warn: s.pending_wholesale > 0 },
-    { label: t('dash.conflicts'), value: s.conflicts, warn: s.conflicts > 0 },
+    { label: t('dash.conflicts'), value: s.conflicts, to: 'tills', warn: s.conflicts > 0 },
   ];
   return (
     <div className="space-y-5">
