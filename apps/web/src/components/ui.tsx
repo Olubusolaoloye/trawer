@@ -6,12 +6,12 @@ import type { ApiError } from '../lib/api';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'ink' | 'brand' | 'wholesale' | 'gold';
 const variants: Record<Variant, string> = {
-  primary: 'bg-green text-white hover:bg-green-ink disabled:opacity-60',
-  brand: 'bg-brand text-brand-ink hover:brightness-110 disabled:opacity-60',
-  ink: 'bg-ink text-white hover:bg-ink-2 disabled:opacity-60',
-  wholesale: 'bg-indigo text-white hover:brightness-110 disabled:opacity-60',
+  primary: 'bg-green text-white shadow-[0_10px_22px_-12px_rgb(11_122_75/0.8)] hover:bg-green-ink disabled:opacity-60 disabled:shadow-none',
+  brand: 'bg-brand text-brand-ink shadow-[0_10px_22px_-12px_var(--color-brand)] hover:brightness-110 disabled:opacity-60',
+  ink: 'bg-ink text-paper hover:bg-ink-2 disabled:opacity-60',
+  wholesale: 'bg-indigo text-white shadow-[0_10px_22px_-12px_rgb(35_48_140/0.8)] hover:brightness-110 disabled:opacity-60',
   gold: 'bg-gold text-ink hover:brightness-105 disabled:opacity-60',
-  secondary: 'bg-white text-ink border-2 border-ink hover:bg-paper disabled:opacity-60',
+  secondary: 'bg-surface text-ink border-[1.5px] border-ink/85 hover:bg-paper disabled:opacity-60',
   ghost: 'bg-transparent text-ink underline-offset-4 hover:underline',
   danger: 'bg-red text-white hover:bg-red-ink disabled:opacity-60',
 };
@@ -22,7 +22,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBut
       <button
         ref={ref}
         className={cx(
-          'inline-flex select-none items-center justify-center gap-2 rounded-xl font-bold transition',
+          'press inline-flex select-none items-center justify-center gap-2 rounded-xl font-bold transition-[background-color,box-shadow,filter,transform] duration-200',
           size === 'lg' ? 'min-h-15 px-6 text-[17px]' : size === 'sm' ? 'min-h-11 px-4 text-sm' : 'min-h-13 px-5 text-base',
           variants[variant],
           className,
@@ -38,7 +38,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBut
   },
 );
 
-const field = 'w-full min-h-13 rounded-xl border-2 border-line bg-white px-4 text-[17px] font-medium text-ink placeholder:text-muted focus:border-ink focus:outline-none aria-[invalid=true]:border-red';
+const field = 'w-full min-h-13 rounded-xl border-[1.5px] border-line bg-surface px-4 text-[17px] font-medium text-ink shadow-[0_1px_2px_rgb(14_20_17/0.04)] transition-[border-color,box-shadow] duration-200 placeholder:text-muted hover:border-muted/50 focus:border-ink focus:outline-none focus:ring-4 focus:ring-ink/10 aria-[invalid=true]:border-red';
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...rest }, ref) {
   return <input ref={ref} className={cx(field, className)} {...rest} />;
@@ -64,7 +64,7 @@ export function Field({ label, hint, error, children, htmlFor }: { label: string
 }
 
 export function Card({ className, children, strong }: { className?: string; children: ReactNode; strong?: boolean }) {
-  return <div className={cx('rounded-2xl bg-white p-4', strong ? 'border-2 border-ink' : 'border border-line', className)}>{children}</div>;
+  return <div className={cx('rounded-2xl bg-surface p-4 shadow-card', strong ? 'border-[1.5px] border-ink' : 'border border-line/70', className)}>{children}</div>;
 }
 
 const badgeTones = {
@@ -74,7 +74,7 @@ const badgeTones = {
   bad: 'bg-red-50 text-red-ink',
   wholesale: 'bg-indigo text-white',
   info: 'bg-indigo-50 text-indigo',
-  ink: 'bg-ink text-white',
+  ink: 'bg-ink text-paper',
   brand: 'bg-brand text-brand-ink',
 };
 export function Badge({ tone = 'neutral', children, className }: { tone?: keyof typeof badgeTones; children: ReactNode; className?: string }) {
@@ -95,6 +95,25 @@ export function Spinner({ label = 'Loading' }: { label?: string }) {
   return (
     <div className="flex justify-center py-10" role="status" aria-label={label}>
       <Loader2 className="size-8 animate-spin text-muted" aria-hidden />
+    </div>
+  );
+}
+
+/** Shimmering placeholder while content loads (keeps layout stable, feels faster than a spinner). */
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cx('skeleton rounded-xl', className)} aria-hidden />;
+}
+
+/** A grid of product-card placeholders. */
+export function ProductGridSkeleton({ n = 8 }: { n?: number }) {
+  return (
+    <div role="status" aria-label="Loading" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {Array.from({ length: n }, (_, i) => (
+        <div key={i} className="overflow-hidden rounded-card border border-line/70 bg-surface">
+          <div className="skeleton aspect-[4/3.9]" />
+          <div className="space-y-2 p-3"><Skeleton className="h-3.5 w-4/5" /><Skeleton className="h-5 w-1/2" /></div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -38,7 +38,7 @@ export function AccountPage() {
     <div className="mx-auto max-w-md">
       <PageHeader title={t('store.account')} back={href('/')} />
       <div className="space-y-3 px-4 pb-8">
-        <section className={cx('space-y-2 rounded-2xl p-5', c.is_wholesale_view ? 'dots bg-indigo text-white' : 'border border-line bg-white')}>
+        <section className={cx('space-y-2 rounded-2xl p-5', c.is_wholesale_view ? 'dots bg-indigo text-white' : 'border border-line bg-surface')}>
           <p className="font-display text-2xl font-extrabold">{c.business_name ?? c.name}</p>
           <p className={c.is_wholesale_view ? 'text-[#DCE0F7]' : 'text-body'}>{me.data.user.phone}</p>
           {c.is_wholesale_view ? <Badge tone="warn">{t('store.wholesaleBadge')}{c.tier_name ? ` · ${c.tier_name}` : ''}</Badge>
@@ -47,10 +47,10 @@ export function AccountPage() {
         </section>
         {c.owing_kobo > 0 && <p className="rounded-2xl bg-red-50 p-4 font-bold">{t('store.youOwe', { amount: formatNaira(c.owing_kobo) })}</p>}
         {c.account_number && (
-          <p className="rounded-2xl border border-line bg-white p-4 text-sm">{t('store.yourAccountLine', { n: c.account_number, bank: c.bank_name ?? '' })}</p>
+          <p className="rounded-2xl border border-line bg-surface p-4 text-sm">{t('store.yourAccountLine', { n: c.account_number, bank: c.bank_name ?? '' })}</p>
         )}
         {[{ to: '/orders', label: t('store.orders') }].map((l) => (
-          <Link key={l.to} to={href(l.to)} className="flex min-h-14 items-center justify-between rounded-2xl border border-line bg-white px-4 font-bold">{l.label}<ChevronRight className="size-5" aria-hidden /></Link>
+          <Link key={l.to} to={href(l.to)} className="flex min-h-14 items-center justify-between rounded-2xl border border-line bg-surface px-4 font-bold">{l.label}<ChevronRight className="size-5" aria-hidden /></Link>
         ))}
         <LanguagePicker />
         <Button variant="secondary" className="w-full" onClick={async () => { await api('/api/auth/sign-out', { json: {} }); await invalidate('/api/'); navigate(href('/')); }}>{t('common.signOut')}</Button>
@@ -64,13 +64,13 @@ export function LanguagePicker() {
   const [, force] = useState(0);
   const current = (() => { try { return (localStorage.getItem('trawer:locale') as Locale) ?? 'en'; } catch { return 'en'; } })();
   return (
-    <fieldset className="rounded-2xl border border-line bg-white p-4">
+    <fieldset className="rounded-2xl border border-line bg-surface p-4">
       <legend className="sr-only">{t('common.language')}</legend>
       <p className="mb-2 text-sm font-bold">{t('common.language')}</p>
       <div className="flex flex-wrap gap-2">
         {LOCALES.map((l) => (
           <button key={l} type="button" aria-pressed={current === l} onClick={async () => { await setLocale(l); force((n) => n + 1); location.reload(); }}
-            className={cx('min-h-11 rounded-full border-2 px-4 text-sm font-bold', current === l ? 'border-ink bg-ink text-white' : 'border-line')}>{LOCALE_NAMES[l]}</button>
+            className={cx('min-h-11 rounded-full border-2 px-4 text-sm font-bold', current === l ? 'border-ink bg-ink text-paper' : 'border-line')}>{LOCALE_NAMES[l]}</button>
         ))}
       </div>
     </fieldset>
@@ -101,7 +101,7 @@ function RegisterForm({ onDone, wholesale }: { onDone: () => void; wholesale: bo
         <fieldset className="space-y-2">
           <legend className="mb-1.5 text-[15px] font-bold">{t('register.type')}</legend>
           {opts.map((o) => (
-            <label key={o.v} className={cx('flex min-h-16 cursor-pointer items-center gap-3 rounded-2xl border-2 bg-white p-3.5',
+            <label key={o.v} className={cx('flex min-h-16 cursor-pointer items-center gap-3 rounded-2xl border-2 bg-surface p-3.5',
               type === o.v ? (o.v === 'wholesaler' ? 'border-indigo' : 'border-ink') : 'border-line')}>
               <input type="radio" name="type" className="size-5 accent-ink" checked={type === o.v} onChange={() => setType(o.v)} />
               <span className="flex-1"><span className="block font-bold">{o.l}</span><span className="text-sm text-muted">{o.h}</span></span>

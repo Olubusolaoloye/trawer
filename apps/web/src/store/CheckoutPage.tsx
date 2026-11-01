@@ -57,7 +57,7 @@ export function CheckoutPage() {
         right={<span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1.5 text-xs font-bold text-green-ink"><Lock className="size-3.5" aria-hidden />{t('checkout.held', { n: store.business.reservation_minutes })}</span>} />
 
       <div className="flex-1 space-y-3.5 px-4 pb-44">
-        <section aria-label={t('checkout.items')} className="rounded-[18px] border border-line bg-white px-3.5 py-1.5">
+        <section aria-label={t('checkout.items')} className="rounded-[18px] border border-line bg-surface px-3.5 py-1.5">
           {quote.lines.map((l, i) => (
             <div key={`${l.variant_id}:${l.unit_id}`} className={cx('flex items-center gap-3 py-2.5', i > 0 && 'border-t border-line-soft')}>
               <CartLineThumb line={l} />
@@ -76,16 +76,16 @@ export function CheckoutPage() {
             {(['pickup', 'delivery'] as const).map((m) => (
               <button key={m} type="button" aria-pressed={method === m} onClick={() => setMethod(m)}
                 className={cx('flex min-h-[72px] flex-col items-start justify-center gap-0.5 rounded-2xl border-2 px-3.5 text-left',
-                  method === m ? 'border-ink bg-ink text-white' : 'border-line bg-white')}>
+                  method === m ? 'border-ink bg-ink text-paper' : 'border-line bg-surface')}>
                 <b className="text-[15px]">{m === 'pickup' ? t('checkout.pickup') : t('checkout.deliver')}</b>
-                <span className={cx('text-xs', method === m ? 'text-[#D9D4C8]' : 'text-muted')}>{m === 'pickup' ? (store.business.address ?? t('checkout.atShop')) : t('checkout.feeConfirmed')}</span>
+                <span className={cx('text-xs', method === m ? 'text-paper/75' : 'text-muted')}>{m === 'pickup' ? (store.business.address ?? t('checkout.atShop')) : t('checkout.feeConfirmed')}</span>
               </button>
             ))}
           </div>
         </fieldset>
 
         {method === 'delivery' && (editAddr ? (
-          <div className="space-y-3 rounded-[18px] border border-line bg-white p-3.5">
+          <div className="space-y-3 rounded-[18px] border border-line bg-surface p-3.5">
             <Field label={t('checkout.address')} htmlFor="l1"><Input id="l1" required minLength={3} autoComplete="street-address" value={addr.line1} onChange={(e) => setAddr({ ...addr, line1: e.target.value })} /></Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label={t('checkout.area')} htmlFor="area"><Input id="area" value={addr.area} onChange={(e) => setAddr({ ...addr, area: e.target.value })} /></Field>
@@ -97,14 +97,14 @@ export function CheckoutPage() {
             </div>
           </div>
         ) : (
-          <section className="flex items-start gap-3 rounded-[18px] border border-line bg-white p-3.5">
+          <section className="flex items-start gap-3 rounded-[18px] border border-line bg-surface p-3.5">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gold-50"><MapPin className="size-5 text-gold-ink" aria-hidden /></span>
             <div className="flex-1"><b className="text-[15px]">{addr.line1}</b><p className="text-[13px] text-body">{[addr.area, addr.city].filter(Boolean).join(', ')}{addr.landmark ? ` · ${addr.landmark}` : ''}</p></div>
             <button type="button" className="min-h-10 px-2.5 text-sm font-bold underline" onClick={() => setEditAddr(true)}>{t('checkout.change')}</button>
           </section>
         ))}
 
-        <section className="flex items-center gap-3 rounded-[18px] border border-line bg-white p-3.5">
+        <section className="flex items-center gap-3 rounded-[18px] border border-line bg-surface p-3.5">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-green-50"><Check className="size-5 text-green-ink" aria-hidden /></span>
           <div className="flex-1"><b className="text-[15px]">{store.me.name} · {me.data.user.phone}</b><p className="text-[13px] text-body">{t('checkout.verified')}</p></div>
         </section>
@@ -120,7 +120,7 @@ export function CheckoutPage() {
         <ErrorNote error={place.error} />
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 border-t border-line bg-white">
+      <div className="fixed inset-x-0 bottom-0 border-t border-line bg-surface">
         <div className="mx-auto max-w-xl space-y-2 px-4 pb-[18px] pt-3">
           <button type="submit" disabled={place.pending || !addressOk}
             className="flex min-h-15 w-full items-center justify-between rounded-[18px] bg-green px-5 font-bold text-white disabled:opacity-60">

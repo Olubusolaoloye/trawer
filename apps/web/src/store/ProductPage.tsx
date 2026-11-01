@@ -66,10 +66,10 @@ export function ProductPage() {
         {image && <img key={image} src={image} alt={`${data.product.name}${variant.colour ? `, ${variant.colour}` : ''}`} width={960} height={960} fetchPriority="high"
           className={cx('size-full object-cover', soldOut && 'opacity-60 grayscale')} />}
         <button type="button" onClick={() => (history.length > 1 ? navigate(-1) : navigate(href('/')))} aria-label={t('common.back')}
-          className="absolute left-3.5 top-3.5 flex size-[46px] items-center justify-center rounded-full bg-white shadow-md"><ChevronLeft className="size-6" aria-hidden /></button>
+          className="absolute left-3.5 top-3.5 flex size-[46px] items-center justify-center rounded-full bg-surface shadow-md"><ChevronLeft className="size-6" aria-hidden /></button>
         <button type="button" aria-label={t('store.share')} onClick={() => void navigator.share?.({ title: data.product.name, url: location.href }).catch(() => undefined)}
-          className="absolute right-3.5 top-3.5 flex size-[46px] items-center justify-center rounded-full bg-white shadow-md"><Share2 className="size-5" aria-hidden /></button>
-        {variant.colour && <span className="absolute bottom-8 left-3.5 rounded-full bg-ink/80 px-3 py-1.5 text-[13px] font-bold text-white">{variant.colour}{soldOut ? ` · ${t('store.outOfStock').toLowerCase()}` : ''}</span>}
+          className="absolute right-3.5 top-3.5 flex size-[46px] items-center justify-center rounded-full bg-surface shadow-md"><Share2 className="size-5" aria-hidden /></button>
+        {variant.colour && <span className="absolute bottom-8 left-3.5 rounded-full bg-ink/80 px-3 py-1.5 text-[13px] font-bold text-paper">{variant.colour}{soldOut ? ` · ${t('store.outOfStock').toLowerCase()}` : ''}</span>}
       </div>
 
       <div className="relative -mt-[18px] flex flex-1 flex-col gap-4 rounded-t-3xl bg-paper px-[18px] pb-32 pt-5">
@@ -121,7 +121,7 @@ export function ProductPage() {
                 const v = pick(variant.colour, s);
                 return (
                   <button key={s} type="button" disabled={!v} onClick={() => v && (setVariantId(v.id), setAdded(false))} aria-pressed={variant.size === s}
-                    className={cx('min-h-12 min-w-12 rounded-xl border-2 px-3 font-bold', variant.size === s ? 'border-ink bg-ink text-white' : 'border-line bg-white',
+                    className={cx('min-h-12 min-w-12 rounded-xl border-2 px-3 font-bold', variant.size === s ? 'border-ink bg-ink text-paper' : 'border-line bg-surface',
                       (!v || v.available === 0) && 'text-muted line-through')}>{s}</button>
                 );
               })}
@@ -133,7 +133,7 @@ export function ProductPage() {
           <div className="flex gap-2" role="group" aria-label={t('store.unit')}>
             {byFactor.map((u) => (
               <button key={u.unit_id} type="button" onClick={() => { setUnitId(u.unit_id); setQty(1); setAdded(false); }} aria-pressed={unit.unit_id === u.unit_id}
-                className={cx('min-h-12 flex-1 rounded-xl border-2 text-sm capitalize', unit.unit_id === u.unit_id ? 'border-ink bg-ink font-bold text-white' : 'border-line bg-white font-semibold')}>
+                className={cx('min-h-12 flex-1 rounded-xl border-2 text-sm capitalize', unit.unit_id === u.unit_id ? 'border-ink bg-ink font-bold text-paper' : 'border-line bg-surface font-semibold')}>
                 {u.name}{u.factor > 1 ? ` · ${u.factor}` : ''}
               </button>
             ))}
@@ -141,7 +141,7 @@ export function ProductPage() {
         )}
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center overflow-hidden rounded-xl border-2 border-ink bg-white" role="group" aria-label={t('store.quantity')}>
+          <div className="flex items-center overflow-hidden rounded-xl border-2 border-ink bg-surface" role="group" aria-label={t('store.quantity')}>
             <button type="button" className="h-13 w-13 text-2xl font-bold" onClick={() => { setQty((q) => Math.max(1, q - 1)); setAdded(false); }} aria-label={t('store.less')}>−</button>
             <span className="num w-10 text-center font-display text-2xl font-extrabold" aria-live="polite">{qty}</span>
             <button type="button" className="h-13 w-13 text-2xl font-bold disabled:text-muted" disabled={qty >= maxQty} onClick={() => { setQty((q) => q + 1); setAdded(false); }} aria-label={t('store.more')}>+</button>
@@ -167,7 +167,7 @@ export function ProductPage() {
         {data.product.description && <p className="whitespace-pre-line leading-relaxed text-body">{data.product.description}</p>}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface">
         <div className="mx-auto flex max-w-xl items-center gap-3 px-[18px] pb-[18px] pt-3">
           <div className="flex flex-col">
             <span className="text-xs font-semibold text-muted">{soldOut ? t('store.outOfStock') : `${baseQty} ${t('store.pieces')} · ${formatNaira(each)} ${t('store.each')}`}</span>

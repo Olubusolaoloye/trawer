@@ -16,7 +16,7 @@ export function OrdersPage() {
       <PageHeader title={t('store.orders')} back={href('/')} />
       <div className="space-y-3 px-4 pb-8">
         {error ? <Empty>{t('error.register_first')}</Empty> : !data ? <Spinner /> : data.orders.length === 0 ? <Empty>{t('common.none')}</Empty> : data.orders.map((o) => (
-          <Link key={o.id} to={href(`/orders/${o.id}`)} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white p-4">
+          <Link key={o.id} to={href(`/orders/${o.id}`)} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-4">
             <div>
               <p className="font-bold">#{o.order_number}</p>
               <p className="text-sm text-muted">{formatDate(o.created_at)}</p>

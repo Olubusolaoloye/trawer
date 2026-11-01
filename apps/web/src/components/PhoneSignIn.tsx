@@ -26,7 +26,7 @@ export function PhoneSignIn({ onDone }: { onDone: () => void }) {
       {!sent ? (
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void send.run(); }}>
           <Field label={t('auth.phone')} hint={t('auth.noPassword')} htmlFor="phone">
-            <div className="flex min-h-14 items-center gap-2.5 rounded-xl border-2 border-ink bg-white px-4 focus-within:outline-3 focus-within:outline-ink">
+            <div className="flex min-h-14 items-center gap-2.5 rounded-xl border-2 border-ink bg-surface px-4 focus-within:outline-3 focus-within:outline-ink">
               <span className="font-bold text-body">+234</span>
               <input id="phone" type="tel" inputMode="tel" autoComplete="tel" required placeholder="803 123 4567" value={phone} onChange={(e) => setPhone(e.target.value)}
                 className="min-w-0 flex-1 bg-transparent text-lg font-semibold outline-none placeholder:font-medium placeholder:text-muted" />

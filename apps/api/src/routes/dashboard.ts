@@ -4,6 +4,8 @@ import { onboardingInput, paymentMethod, phoneSchema, productInput, staffRole, u
 import { many, one, withService, withUser } from '../db';
 import { logError } from '../log';
 import { ensureVirtualAccount } from '../payments';
+import { designView } from '../storefront';
+import { storefrontSchema } from '@trawer/core/storefront';
 import { ApiError, body, query, requireUser, type AppEnv, type Ctx } from '../http';
 import { createProduct } from '../products';
 import { imageUrl, putImage } from '../storage';
@@ -175,6 +177,25 @@ dashboardRoutes.patch('/:bid/staff/:sid', async (c) => {
   return asStaff(c, async (tx) => {
     await tx.query(`select public.set_staff_role($1, $2, $3)`, [c.req.param('sid'), input.role, input.status ?? null]);
     return c.json({ ok: true });
+  });
+});
+
+// ------------------------------------------------------------------------------------------
+// Storefront design
+// ------------------------------------------------------------------------------------------
+dashboardRoutes.get('/:bid/storefront', (c) => asStaff(c, async (tx, b) => {
+  const r = await one<{ storefront: unknown; storefront_updated_at: string | null }>(tx, `select storefront, storefront_updated_at from businesses where id = $1`, [b]);
+  if (!r) throw new ApiError(404, 'not_found');
+  return c.json({ design: designView(r.storefront), updated_at: r.storefront_updated_at });
+}));
+
+dashboardRoutes.put('/:bid/storefront', async (c) => {
+  const input = await body(c, storefrontSchema);
+  return asStaff(c, async (tx, b) => {
+    // A banner photo must be one this shop uploaded (never another shop's file).
+    if (input.hero.image_path && !input.hero.image_path.startsWith(`${b}/`)) throw new ApiError(422, 'validation_failed');
+    await tx.query(`select public.set_storefront($1, $2::jsonb)`, [b, JSON.stringify(input)]);
+    return c.json({ design: designView(input) });
   });
 });
 

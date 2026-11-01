@@ -5,6 +5,10 @@ import { many, one, withUser, type Tx } from '../db';
 import { ApiError, body, query, requireUser, type AppEnv, type Ctx } from '../http';
 import { imageUrl } from '../storage';
 import { ensureVirtualAccount } from '../payments';
+import { designView } from '../storefront';
+import { normalizeStorefront } from '@trawer/core/storefront';
+
+const fewLeft = (n: number) => (n > 0 && n <= 10 ? n : null);
 
 export const storeRoutes = new Hono<AppEnv>();
 
@@ -18,11 +22,12 @@ interface StoreBusiness {
   phone: string | null;
   address: string | null;
   reservation_minutes: number;
+  storefront: unknown;
 }
 
 async function business(tx: Tx, slug: string): Promise<StoreBusiness> {
   const b = await one<StoreBusiness>(tx,
-    `select id, slug::text, name, kind, brand_colour, logo_path, phone, address, reservation_minutes
+    `select id, slug::text, name, kind, brand_colour, logo_path, phone, address, reservation_minutes, storefront
      from businesses where slug = $1 and status = 'active'`, [slug.toLowerCase()]);
   if (!b) throw new ApiError(404, 'store_not_found');
   return b;
@@ -50,7 +55,8 @@ storeRoutes.get('/:slug', async (c) => {
       many(tx, `select category, count(*)::int n from products where business_id = $1 and status = 'active' and category is not null
                 group by 1 order by 2 desc limit 30`, [b.id]),
     ]);
-    return { business: { ...b, logo_url: imageUrl(b.logo_path, 200) }, me, categories };
+    const { storefront, ...biz } = b;
+    return { business: { ...biz, logo_url: imageUrl(b.logo_path, 200) }, me, categories, design: designView(storefront) };
   });
   // Varies by signed-in buyer (wholesale view), so never reuse without revalidating.
   c.header('Cache-Control', 'private, no-cache');
@@ -100,6 +106,7 @@ storeRoutes.get('/:slug/products', async (c) => {
           many(tx, `select variant_id, available from public.variant_availability($1::uuid[])`, [variantIds]),
         ])
       : [[], []];
+    const showStock = normalizeStorefront(b.storefront).show_stock;
     const priceOf = new Map(prices.map((p) => [p.variant_id, p]));
     const stockOf = new Map(stock.map((s) => [s.variant_id, s.available]));
     const items = page.map((r) => {
@@ -115,6 +122,8 @@ storeRoutes.get('/:slug/products', async (c) => {
         price_kobo: min,
         retail_price_kobo: minRetail,
         in_stock: vs.some((v) => (stockOf.get(v.id) ?? 0) > 0),
+        // Only when the shop opts in, and only when it's genuinely low (exact stock isn't public).
+        few_left: showStock ? fewLeft(vs.reduce((n, v) => n + (stockOf.get(v.id) ?? 0), 0)) : null,
         swatches: vs.filter((v) => v.colour).slice(0, 6).map((v) => ({ colour: v.colour, hex: v.hex, in_stock: (stockOf.get(v.id) ?? 0) > 0 })),
       };
     });

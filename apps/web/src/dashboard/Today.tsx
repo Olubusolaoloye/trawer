@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowRight, Settings } from 'lucide-react';
+import { ArrowRight, Settings, Palette } from 'lucide-react';
 import { useApi } from '../lib/use-api';
 import { cx, formatNaira } from '../lib/format';
 import { Badge, Spinner, StatusPill } from '../components/ui';
@@ -61,24 +61,35 @@ export default function Today() {
         </div>
       </div>
 
+      {b.can('settings.manage') && !b.business.storefront_updated_at && (
+        <Link to="design" className="lift group relative flex items-center gap-4 overflow-hidden rounded-3xl border border-line/70 bg-white p-4 shadow-card sm:p-5">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-[0_10px_22px_-10px_rgb(0_0_0/0.5)]" style={{ background: `linear-gradient(135deg, ${b.business.brand_colour}, #F2B705)` }} aria-hidden><Palette className="size-6" /></span>
+          <span className="flex-1">
+            <b className="block font-display text-lg leading-tight">{t('design.promoTitle')}</b>
+            <span className="text-sm text-body">{t('design.promoBody')}</span>
+          </span>
+          <ArrowRight className="size-5 shrink-0 transition-transform group-hover:translate-x-1" aria-hidden />
+        </Link>
+      )}
+
       <section aria-label={t('dash.inNumbers')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="col-span-2 space-y-2 rounded-3xl bg-ink p-5 text-white lg:col-span-1">
+        <div className="glow-green col-span-2 space-y-2 rounded-3xl bg-ink p-5 text-white shadow-float lg:col-span-1">
           <p className="text-sm font-semibold text-[#C9C3B6]">{t('dash.takenToday')}</p>
           <p className="num font-display text-[40px] font-extrabold leading-none tracking-tight">{short(data.taken_today_kobo)}</p>
           {change !== null && <p className={cx('text-sm font-semibold', change >= 0 ? 'text-[#8EE0B5]' : 'text-[#F5A399]')}>{change >= 0 ? '▲' : '▼'} {Math.abs(change)}% {t('dash.vsLastWeek')}</p>}
           <div className="grid grid-cols-2 gap-1.5 pt-1">
             {Object.entries(data.by_channel).map(([ch, v]) => (
-              <span key={ch} className="rounded-xl bg-ink-2 px-2 py-1.5"><span className="block text-[11px] text-[#C9C3B6]">{CH[ch]?.label ?? ch}</span><b className="num text-sm">{short(v)}</b></span>
+              <span key={ch} className="rounded-xl bg-white/10 px-2 py-1.5 backdrop-blur"><span className="block text-[11px] text-[#C9C3B6]">{CH[ch]?.label ?? ch}</span><b className="num text-sm">{short(v)}</b></span>
             ))}
           </div>
         </div>
         {data.profit_today_kobo !== null && (
-          <div className="space-y-1.5 rounded-2xl border border-line bg-white p-4"><p className="text-sm font-semibold text-muted">{t('dash.profitToday')}</p><p className="num font-display text-[28px] font-extrabold">{short(data.profit_today_kobo)}</p>
+          <div className="space-y-1.5 rounded-2xl border border-line/70 bg-white shadow-card p-4"><p className="text-sm font-semibold text-muted">{t('dash.profitToday')}</p><p className="num font-display text-[28px] font-extrabold">{short(data.profit_today_kobo)}</p>
             <p className="text-[13px] text-body">{data.sales_today_kobo ? t('dash.margin', { n: Math.round((data.profit_today_kobo / data.sales_today_kobo) * 100) }) : '—'}</p></div>
         )}
-        <Link to="orders" className="space-y-1.5 rounded-2xl border border-line bg-white p-4"><p className="text-sm font-semibold text-muted">{t('dash.orders')}</p><p className="font-display text-[28px] font-extrabold">{data.orders_today}</p>
+        <Link to="orders" className="lift space-y-1.5 rounded-2xl border border-line/70 bg-white shadow-card p-4"><p className="text-sm font-semibold text-muted">{t('dash.orders')}</p><p className="font-display text-[28px] font-extrabold">{data.orders_today}</p>
           <p className="text-[13px] text-body">{t('dash.toPackOnWay', { a: data.to_pack, b: data.on_the_way })}</p></Link>
-        <Link to="debtors" className="space-y-1.5 rounded-2xl bg-red-50 p-4"><p className="text-sm font-bold text-red-ink">{t('dash.owedToYou')}</p><p className="num font-display text-[28px] font-extrabold">{short(data.owed_kobo)}</p>
+        <Link to="debtors" className="lift space-y-1.5 rounded-2xl bg-red-50 p-4"><p className="text-sm font-bold text-red-ink">{t('dash.owedToYou')}</p><p className="num font-display text-[28px] font-extrabold">{short(data.owed_kobo)}</p>
           <p className="text-[13px] text-body">{data.late_kobo > 0 ? t('dash.lateAmount', { amount: short(data.late_kobo) }) : t('dash.nothingLate')}</p></Link>
       </section>
 
@@ -93,7 +104,7 @@ export default function Today() {
             </div>
           ))}
           {data.tills.length > 0 && (
-            <div className="space-y-2.5 rounded-[18px] border border-line bg-white p-3.5">
+            <div className="space-y-2.5 rounded-[18px] border border-line/70 bg-white shadow-card p-3.5">
               <b>{t('dash.tills')}</b>
               {data.tills.map((d) => {
                 const fresh = d.last_sync_at && Date.now() - new Date(d.last_sync_at).getTime() < 10 * 60_000;
@@ -106,7 +117,7 @@ export default function Today() {
 
         <section className="space-y-3">
           <h2 className="font-display text-[22px] font-extrabold">{t('dash.salesByChannel')}</h2>
-          <div className="space-y-3.5 rounded-[20px] border border-line bg-white p-4">
+          <div className="space-y-3.5 rounded-[20px] border border-line/70 bg-white shadow-card p-4">
             <div aria-hidden className="grid h-40 grid-cols-11 items-end gap-2">
               {hours.map((h) => {
                 const parts = data.by_hour.filter((x) => x.hour === h);
@@ -125,7 +136,7 @@ export default function Today() {
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2.5 rounded-[20px] border border-line bg-white p-4">
+            <div className="space-y-2.5 rounded-[20px] border border-line/70 bg-white shadow-card p-4">
               <div className="flex items-center justify-between"><b>{t('dash.liveOrders')}</b><Link to="orders" aria-label={t('dash.orders')}><ArrowRight className="size-5" /></Link></div>
               {data.live_orders.map((o) => (
                 <Link key={o.id} to={`orders/${o.id}`} className="flex items-center justify-between gap-2 text-sm">
@@ -134,7 +145,7 @@ export default function Today() {
                 </Link>
               ))}
             </div>
-            <div className="space-y-2.5 rounded-[20px] border border-line bg-white p-4">
+            <div className="space-y-2.5 rounded-[20px] border border-line/70 bg-white shadow-card p-4">
               <b>{t('dash.bestSellers')}</b>
               {data.best_sellers.length === 0 && <p className="text-sm text-muted">{t('dash.noSalesYet')}</p>}
               {data.best_sellers.map((s, i) => <div key={s.name} className="flex justify-between gap-2 text-sm"><span className="truncate">{i + 1}. {s.name}</span><b className="num">{s.qty} pcs</b></div>)}

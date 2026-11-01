@@ -58,7 +58,7 @@ export function CartPage() {
               {quote.lines.map((l) => {
                 const short = l.base_qty > l.available;
                 return (
-                  <li key={`${l.variant_id}:${l.unit_id}`} className={cx('flex gap-3 rounded-2xl border bg-white p-3', short ? 'border-gold' : 'border-line')}>
+                  <li key={`${l.variant_id}:${l.unit_id}`} className={cx('flex gap-3 rounded-2xl border bg-surface p-3', short ? 'border-gold' : 'border-line')}>
                     <CartLineThumb line={l} />
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <p className="font-semibold leading-tight">{l.name}{l.variant_label ? ` · ${l.variant_label}` : ''}</p>
@@ -81,9 +81,9 @@ export function CartPage() {
             </ul>
             {savingOf(quote) > 0 && <p className="text-[15px] font-semibold text-green-ink">{t('cart.saving', { amount: formatNaira(savingOf(quote)) })}</p>}
           </div>
-          <div className="fixed inset-x-0 bottom-0 border-t border-line bg-white">
+          <div className="fixed inset-x-0 bottom-0 border-t border-line bg-surface">
             <div className="mx-auto max-w-xl px-4 pb-[18px] pt-3">
-              <Link to={href('/checkout')} className="flex min-h-15 items-center justify-between rounded-[18px] bg-ink px-5 font-bold text-white">
+              <Link to={href('/checkout')} className="flex min-h-15 items-center justify-between rounded-[18px] bg-ink px-5 font-bold text-paper">
                 <span className="text-[17px]">{t('cart.checkout')}</span>
                 <span className="num font-display text-[22px] font-extrabold">{formatNaira(quote.subtotal_kobo)}</span>
               </Link>

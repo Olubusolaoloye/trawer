@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { Link, NavLink, Route, Routes, useNavigate, useParams } from 'react-router';
-import { Boxes, Home, Plus, Settings, ShoppingCart, Users } from 'lucide-react';
+import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router';
+import { Boxes, ExternalLink, HandCoins, Home, MonitorSmartphone, Palette, Plus, Settings, ShoppingCart, Users } from 'lucide-react';
 import { api } from '../lib/api';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { PhoneSignIn } from '../components/PhoneSignIn';
@@ -16,6 +16,7 @@ const Customers = lazy(() => import('./Customers'));
 const SettingsPage = lazy(() => import('./SettingsPage'));
 const Tills = lazy(() => import('./Tills'));
 const Debtors = lazy(() => import('./Debtors'));
+const StoreDesigner = lazy(() => import('./StoreDesigner'));
 
 interface Me { user: { id: string; phone: string; aal: string } | null; staff: { business_id: string; role: string; name: string; slug: string }[] }
 
@@ -66,7 +67,7 @@ function BusinessPicker({ me }: { me: Me }) {
       <Logo />
       <h1 className="pt-4 font-display text-3xl font-extrabold">{t('dash.chooseBusiness')}</h1>
       {me.staff.map((s) => (
-        <Link key={s.business_id} to={`/dashboard/${s.business_id}`} className="flex min-h-16 items-center justify-between rounded-2xl border border-line bg-white px-4 font-bold">
+        <Link key={s.business_id} to={`/dashboard/${s.business_id}`} className="flex min-h-16 items-center justify-between rounded-2xl border border-line/70 bg-white shadow-card px-4 font-bold">
           {s.name}<span className="text-sm font-semibold capitalize text-muted">{s.role.replace('_', ' ')}</span>
         </Link>
       ))}
@@ -129,6 +130,7 @@ function Onboarding() {
 function BusinessShell() {
   const { bid = '' } = useParams();
   const { data, error } = useApi<BizInfo>(`/api/biz/${bid}`);
+  const location = useLocation();
   if (error) return <Empty>{t('error.permission_denied')}</Empty>;
   if (!data) return <Spinner />;
   const base = `/dashboard/${bid}`;
@@ -139,39 +141,36 @@ function BusinessShell() {
     { to: `${base}/customers`, label: t('dash.customers'), icon: Users, badge: data.stats.pending_wholesale },
     { to: `${base}/settings`, label: t('dash.settings'), icon: Settings },
   ];
+  const extra = [
+    { to: `${base}/debtors`, label: t('debt.title'), icon: HandCoins },
+    { to: `${base}/tills`, label: t('dash.tills'), icon: MonitorSmartphone, badge: data.stats.conflicts, alert: true },
+    ...(data.permissions.includes('settings.manage') ? [{ to: `${base}/design`, label: t('dash.design'), icon: Palette }] : []),
+  ];
   return (
     <BizCtx.Provider value={{ ...data, base, can: (p) => data.permissions.includes(p) }}>
       <div className="min-h-dvh pb-24 lg:pb-0 lg:pl-60">
         {/* Desktop: ink side menu */}
-        <nav aria-label="Dashboard" className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col gap-1.5 bg-ink px-4 py-5 text-white lg:flex">
+        <nav aria-label="Dashboard" className="glow-green fixed inset-y-0 left-0 z-30 hidden w-60 flex-col gap-1 bg-ink px-3.5 py-5 text-white lg:flex">
           <div className="flex items-center gap-2.5 px-2 pb-5">
-            <span className="flex size-[38px] items-center justify-center rounded-[11px] font-display font-extrabold" style={{ background: data.business.brand_colour }}>{data.business.name.charAt(0)}</span>
+            {data.business.logo_url
+              ? <img src={data.business.logo_url} alt="" className="size-[38px] rounded-[11px] object-cover" />
+              : <span className="flex size-[38px] items-center justify-center rounded-[11px] font-display font-extrabold shadow-[0_6px_16px_-6px_rgb(0_0_0/0.6)]" style={{ background: data.business.brand_colour }}>{data.business.name.charAt(0)}</span>}
             <span className="flex min-w-0 flex-col"><b className="truncate text-[15px]">{data.business.name}</b><span className="truncate text-xs text-[#C9C3B6]">{data.business.slug}.trawer.shop</span></span>
           </div>
-          {nav.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cx('flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px]',
-              isActive ? 'bg-ink-2 font-bold text-white' : 'font-semibold text-[#E7E2D6] hover:bg-ink-2')}>
-              {({ isActive }) => (<>
-                <span className={cx('size-2 rounded-full', isActive ? 'bg-gold' : 'bg-transparent')} aria-hidden />
-                <span className="flex-1">{n.label}</span>
-                {!!n.badge && <span className="rounded-full bg-indigo px-2 text-xs font-bold">{n.badge}</span>}
-              </>)}
-            </NavLink>
-          ))}
-          <NavLink to={`${base}/tills`} className={({ isActive }) => cx('flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px]', isActive ? 'bg-ink-2 font-bold' : 'font-semibold text-[#E7E2D6] hover:bg-ink-2')}>
-            <span className="size-2" aria-hidden /><span className="flex-1">{t('dash.tills')}</span>
-            {data.stats.conflicts > 0 && <span className="rounded-full bg-red px-2 text-xs font-bold">{data.stats.conflicts}</span>}
-          </NavLink>
-          <NavLink to={`${base}/debtors`} className={({ isActive }) => cx('flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px]', isActive ? 'bg-ink-2 font-bold' : 'font-semibold text-[#E7E2D6] hover:bg-ink-2')}>
-            <span className="size-2" aria-hidden /><span className="flex-1">{t('debt.title')}</span>
-          </NavLink>
-          {data.permissions.includes('products.draft') && (
-            <Link to={`${base}/products/new`} className="mt-auto flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green font-bold"><Plus className="size-5" aria-hidden />{t('dash.newProduct')}</Link>
-          )}
+          {[...nav.slice(0, 4), ...extra].map((n) => <SideLink key={n.to} {...n} />)}
+          <div className="mt-auto space-y-1">
+            <SideLink {...nav[4]!} />
+            <a href={`/s/${data.business.slug}`} target="_blank" rel="noopener" className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-semibold text-[#E7E2D6] transition-colors hover:bg-white/10">
+              <ExternalLink className="size-[18px] opacity-80" aria-hidden /><span className="flex-1">{t('design.viewStore')}</span>
+            </a>
+            {data.permissions.includes('products.draft') && (
+              <Link to={`${base}/products/new`} className="press mt-2 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green font-bold shadow-[0_10px_24px_-10px_rgb(11_122_75/0.9)]"><Plus className="size-5" aria-hidden />{t('dash.newProduct')}</Link>
+            )}
+          </div>
         </nav>
 
         {/* Phone: bottom tabs with the add button in the middle */}
-        <nav aria-label="Dashboard" className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-line bg-white px-1.5 pb-3.5 pt-2 lg:hidden">
+        <nav aria-label="Dashboard" className="glass fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-line/60 px-1.5 pb-[max(14px,env(safe-area-inset-bottom))] pt-2 lg:hidden">
           {[nav[0]!, nav[1]!].map((n) => <TabLink key={n.to} {...n} />)}
           <Link to={`${base}/products/new`} aria-label={t('dash.newProduct')} className="-mt-7 flex size-15 items-center justify-center rounded-full border-4 border-paper bg-green shadow-[0_8px_20px_rgba(11,122,75,0.35)]">
             <Plus className="size-7 text-white" aria-hidden />
@@ -179,7 +178,7 @@ function BusinessShell() {
           {[nav[2]!, nav[3]!].map((n) => <TabLink key={n.to} {...n} />)}
         </nav>
 
-        <main className="mx-auto max-w-6xl px-4 py-5 lg:px-10 lg:py-7">
+        <main key={location.pathname.split('/').slice(0, 4).join('/')} className="rise mx-auto max-w-6xl px-4 py-5 lg:px-10 lg:py-7">
           <Suspense fallback={<Spinner />}>
             <Routes>
               <Route index element={<TodayPage />} />
@@ -189,6 +188,7 @@ function BusinessShell() {
               <Route path="settings/*" element={<SettingsPage />} />
               <Route path="tills" element={<Tills />} />
               <Route path="debtors/*" element={<Debtors />} />
+              <Route path="design" element={<StoreDesigner />} />
             </Routes>
           </Suspense>
         </main>
@@ -202,6 +202,20 @@ function TabLink({ to, label, icon: Icon, end, badge }: { to: string; label: str
     <NavLink to={to} end={end} className={({ isActive }) => cx('relative flex min-h-13 w-16 flex-col items-center justify-center gap-0.5 text-xs', isActive ? 'font-extrabold text-green' : 'font-semibold text-body')}>
       <Icon className="size-6" aria-hidden />{label}
       {!!badge && <span className="absolute right-2 top-0 rounded-full bg-indigo px-1.5 text-[10px] font-bold text-white">{badge}</span>}
+    </NavLink>
+  );
+}
+
+function SideLink({ to, label, icon: Icon, end, badge, alert }: { to: string; label: string; icon: typeof Home; end?: boolean; badge?: number; alert?: boolean }) {
+  return (
+    <NavLink to={to} end={end} className={({ isActive }) => cx('relative flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] transition-colors',
+      isActive ? 'bg-white/10 font-bold text-white' : 'font-semibold text-[#E7E2D6] hover:bg-white/5')}>
+      {({ isActive }) => (<>
+        {isActive && <span className="absolute -left-3.5 top-2 h-7 w-1 rounded-r-full bg-gold" aria-hidden />}
+        <Icon className={cx('size-[18px]', isActive ? 'text-gold' : 'opacity-80')} aria-hidden />
+        <span className="flex-1">{label}</span>
+        {!!badge && <span className={cx('rounded-full px-2 text-xs font-bold', alert ? 'bg-red' : 'bg-indigo')}>{badge}</span>}
+      </>)}
     </NavLink>
   );
 }

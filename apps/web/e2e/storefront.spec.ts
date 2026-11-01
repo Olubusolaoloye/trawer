@@ -157,3 +157,34 @@ test('credit sale: owner sells on credit → debtors book → shareable invoice 
   expect((await pdf.body()).subarray(0, 5).toString()).toBe('%PDF-');
   await c.end();
 });
+
+test('owner customises the store: theme + announcement show in the live preview, then for buyers after publishing', async ({ page }) => {
+  await page.goto('/dashboard');
+  await signIn(page, '+2348030000001');
+  await page.getByText("You've taken today").waitFor();
+  await page.goto(`${page.url().replace(/\/$/, '')}/design`);
+  await expect(page.getByRole('heading', { name: 'Store design' })).toBeVisible();
+
+  await page.getByRole('button', { name: /Midnight/ }).click();
+  await page.getByRole('switch', { name: 'Show a message at the very top' }).click();
+  await page.getByRole('textbox', { name: 'Message', exact: true }).fill('Free delivery in Lagos this week');
+  await page.getByRole('tab', { name: 'Preview' }).click();
+  const preview = page.frameLocator('iframe[title="Live preview"]');
+  await expect(preview.getByText('Free delivery in Lagos this week')).toBeVisible();
+  await expect(preview.locator('html')).toHaveAttribute('data-store-theme', 'midnight');
+
+  await page.getByRole('button', { name: 'Publish changes' }).click();
+  await expect(page.getByRole('button', { name: 'Published' })).toBeVisible();
+
+  await page.context().clearCookies();
+  await page.goto('/s/balogun');
+  await expect(page.getByText('Free delivery in Lagos this week')).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('data-store-theme', 'midnight');
+
+  // Leave the demo store as it was for other tests.
+  const pg = await import('pg');
+  const c = new pg.default.Client({ connectionString: process.env.E2E_DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/trawer_dev' });
+  await c.connect();
+  await c.query(`update businesses set storefront = '{}', storefront_updated_at = null where slug = 'balogun'`);
+  await c.end();
+});

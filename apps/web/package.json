@@ -13,7 +13,9 @@
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/nunito": "^5.3.0",
     "@trawer/core": "workspace:*",
     "clsx": "^2.1.1",
     "lucide-react": "^1.66.0",

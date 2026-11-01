@@ -64,6 +64,14 @@ debt reminders (M7), WhatsApp bot (M6), rider/delivery steps (M8), Instagram pos
 - **Debt reminders**: first on the due date, then every 7 days, at most 4 per order; never to buyers who withdrew WhatsApp consent. Shops can switch them off (`debt_reminders_enabled`).
 - **Public documents** use 18-byte random tokens and show names, items, totals and the pay-to account — never phone numbers. Responses are `no-store` + `noindex`.
 
+### Store designer + UI refresh (v2)
+- **Owners customise their store** at Dashboard → Store design, with a live phone/desktop preview (the real store in a same-origin iframe, fed the draft by `postMessage` with origin + source checks). Choices: logo, shop colour, theme (Market, Linen, Midnight, Bold), headline font (Modern, Elegant, Friendly, Clean), header (colour, clean, glass), product cards (classic, photo, minimal), corners, grid density, banner (photo, headline, button → category), announcement bar, featured collection, section order + visibility, about text, Instagram/TikTok/WhatsApp, optional "only N left" badges (≤ 10 only).
+- **Safe by construction**: the design is a closed set of choices + bounded text validated by `@trawer/core/storefront` (zod); no CSS/HTML from shops; banner photos must be the shop's own uploads; saved via `set_storefront` (needs `settings.manage`, audited). Migration 0900.
+- **Theming** maps choices onto CSS variables (`lib/theme.ts`); storefront components use theme tokens (`surface`, `paper`, `ink`…) so dark and bold themes work everywhere. Extra fonts (Fraunces, Nunito) are bundled and lazy-loaded only for shops that pick them — no third-party font requests.
+- **UI refresh**: soft depth (card shadows instead of hard outlines), glass headers and floating cart, focus halos, press feedback, page-rise transitions, staggered grids, shimmer skeletons instead of spinners, image zoom on hover, hero banners, icon sidebar with active accent, glass bottom bar on phones, Today prompt to design the store.
+- **Security headers**: CSP (`default-src 'self'`, fonts self-only, `frame-ancestors 'self'`), `X-Frame-Options: SAMEORIGIN` (needed for the designer preview only).
+- Tests: 3 core, 3 API, 1 e2e (designer → live preview → publish → buyers see it).
+
 ## How to run the tests
 
 ```bash

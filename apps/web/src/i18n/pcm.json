@@ -119,5 +119,14 @@
   "credit.confirm": "Confirm am on credit",
   "credit.dueDate": "Make e pay by",
   "docs.share": "Send am for WhatsApp",
-  "order.getInvoice": "Collect invoice"
+  "order.getInvoice": "Collect invoice",
+  "design.title": "Design your shop",
+  "design.publish": "Publish am",
+  "design.published": "E don publish",
+  "design.livePreview": "See am live",
+  "store.heroCta": "Start to buy",
+  "store.seeAll": "See everything",
+  "store.fewLeft": "Na only {n} remain",
+  "store.chatWhatsApp": "Chat us for WhatsApp",
+  "dash.design": "Design your shop"
 }

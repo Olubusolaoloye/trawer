@@ -61,7 +61,7 @@ function OrderBoard() {
       </div>
 
       {!data ? <Spinner /> : data.orders.length === 0 ? <Empty>{t('common.none')}</Empty> : view === 'list' ? (
-        <ul className="divide-y divide-line-soft rounded-2xl border border-line bg-white">
+        <ul className="divide-y divide-line-soft rounded-2xl border border-line/70 bg-white shadow-card">
           {data.orders.map((o) => (
             <li key={o.id}>
               <Link to={`${b.base}/orders/${o.id}`} className="flex min-h-16 items-center justify-between gap-3 px-4 py-2.5">

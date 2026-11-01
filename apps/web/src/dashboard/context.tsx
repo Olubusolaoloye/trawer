@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 
 export interface BizInfo {
-  business: { id: string; name: string; slug: string; brand_colour: string; logo_url: string | null; onboarding_completed_at: string | null; reservation_minutes: number };
+  business: { id: string; name: string; slug: string; brand_colour: string; logo_url: string | null; onboarding_completed_at: string | null; reservation_minutes: number; storefront_updated_at?: string | null };
   role: string;
   permissions: string[];
   locations: { id: string; name: string; is_default: boolean }[];

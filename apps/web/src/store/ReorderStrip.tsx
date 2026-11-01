@@ -30,7 +30,7 @@ export function ReorderCard() {
         <span className="font-display text-[26px] font-extrabold leading-tight">{me?.business_name ?? me?.name}</span>
       </div>
       {sellable.length > 0 && (
-        <section className="space-y-3 rounded-[22px] border-2 border-indigo bg-white p-4">
+        <section className="space-y-3 rounded-[22px] border-2 border-indigo bg-surface p-4">
           <div className="flex items-baseline justify-between">
             <h2 className="font-display text-[21px] font-extrabold">{t('store.reorderTitle')}</h2>
           </div>
@@ -61,7 +61,7 @@ export function ReorderCard() {
             <b className="text-base">{t('store.youOwe', { amount: formatNaira(me.owing_kobo) })}</b>
             {me.oldest_owing_order && <span className="text-[13px] text-body">{t('store.fromOrder', { n: me.oldest_owing_order })}</span>}
           </div>
-          <Link to={href('/orders')} className="flex min-h-[46px] items-center rounded-xl bg-ink px-4 text-[15px] font-bold text-white">{t('store.payNow')}</Link>
+          <Link to={href('/orders')} className="flex min-h-[46px] items-center rounded-xl bg-ink px-4 text-[15px] font-bold text-paper">{t('store.payNow')}</Link>
         </section>
       )}
     </div>

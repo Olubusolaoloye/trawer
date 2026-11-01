@@ -24,8 +24,22 @@ export function createApp() {
 
   app.use('*', secureHeaders({
     strictTransportSecurity: 'max-age=63072000; includeSubDomains',
-    xFrameOptions: 'DENY',
+    // Only our own store designer may frame pages (live preview); nobody else can.
+    xFrameOptions: 'SAMEORIGIN',
     referrerPolicy: 'strict-origin-when-cross-origin',
+    contentSecurityPolicy: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"], // React style attributes (brand colours)
+      imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+      fontSrc: ["'self'"], // fonts are bundled; never a third-party font host
+      connectSrc: ["'self'"],
+      frameSrc: ["'self'"],
+      frameAncestors: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+    },
   }));
 
   app.use('*', async (c, next) => {

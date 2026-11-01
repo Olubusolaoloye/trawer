@@ -9,7 +9,7 @@ export function PageHeader({ title, back, right }: { title: string; back: string
   return (
     <header className="flex items-center gap-2.5 px-3.5 pb-2.5 pt-3.5">
       <button type="button" onClick={() => navigate(back)} aria-label={t('common.back')}
-        className="flex size-[46px] items-center justify-center rounded-xl border border-line bg-white"><ChevronLeft className="size-6" aria-hidden /></button>
+        className="flex size-[46px] items-center justify-center rounded-xl border border-line bg-surface"><ChevronLeft className="size-6" aria-hidden /></button>
       <h1 className="flex-1 font-display text-2xl font-extrabold">{title}</h1>
       {right}
     </header>
