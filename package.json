@@ -1,0 +1,21 @@
+{
+  "name": "trawer",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:reset": "pnpm --filter @trawer/db db:reset",
+    "db:seed": "pnpm --filter @trawer/db db:seed",
+    "db:types": "pnpm --filter @trawer/db db:types",
+    "e2e": "pnpm --filter @trawer/web e2e"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.9.0"
+  }
+}
