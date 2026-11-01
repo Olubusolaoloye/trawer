@@ -266,7 +266,7 @@ storeRoutes.get('/:slug/reorder', async (c) => {
     return many(tx, `
       select i.variant_id, i.unit_id, max(i.name) as name, max(i.variant_label) as variant_label,
              round(avg(i.unit_qty))::int as usual_qty, count(*)::int as times, max(o.created_at) as last_ordered,
-             (select u.name from units u where u.id = i.unit_id) as unit_name,
+             (select case when round(avg(i.unit_qty)) = 1 then u.name else u.plural end from units u where u.id = i.unit_id) as unit_name,
              (select pu.factor from product_units pu join product_variants v on v.product_id = pu.product_id
               where v.id = i.variant_id and pu.unit_id = i.unit_id) as factor,
              (select (public.resolve_price(i.variant_id, public.my_customer_id($1), 1, 'web')).unit_price_kobo) as unit_price_kobo,

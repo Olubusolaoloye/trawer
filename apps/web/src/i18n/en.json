@@ -291,5 +291,6 @@
   "attention.offline_price_mismatch": "A till charged an old price while offline. Check the amount.",
   "attention.credit_sale_needs_approval": "Credit sale by a cashier. Approve or collect.",
   "attention.unknown_customer": "The till's customer was not found.",
-  "board.line": "{n} line"
+  "board.line": "{n} line",
+  "dash.waitingWholesaleOne": "1 wholesaler waiting"
 }

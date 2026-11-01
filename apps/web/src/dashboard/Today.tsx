@@ -38,7 +38,7 @@ export default function Today() {
   const hours = Array.from({ length: 11 }, (_, i) => 8 + i);
   const maxHour = Math.max(1, ...hours.map((h) => data.by_hour.filter((x) => x.hour === h).reduce((s, x) => s + x.total, 0)));
   const needs = [
-    n.wholesale_pending > 0 && { tone: 'border-2 border-indigo', title: t('dash.waitingWholesale', { n: n.wholesale_pending }), body: n.wholesale_first ?? '', cta: t('dash.review'), to: 'customers?pending=1', btn: 'bg-indigo text-white' },
+    n.wholesale_pending > 0 && { tone: 'border-2 border-indigo', title: t(n.wholesale_pending === 1 ? 'dash.waitingWholesaleOne' : 'dash.waitingWholesale', { n: n.wholesale_pending }), body: n.wholesale_first ?? '', cta: t('dash.review'), to: 'customers?pending=1', btn: 'bg-indigo text-white' },
     n.unplaced_payments > 0 && { tone: 'border-2 border-red', title: t('dash.unplaced', { amount: formatNaira(n.unplaced_kobo) }), body: t('dash.unplacedBody', { n: n.unplaced_payments }), cta: t('dash.placeIt'), to: 'orders', btn: 'bg-ink text-white' },
     n.conflicts > 0 && { tone: 'border border-line', title: t('dash.conflictsTitle', { n: n.conflicts }), body: n.conflict_first ?? '', cta: t('dash.count'), to: 'tills', btn: 'border-2 border-ink' },
     n.low_stock > 0 && { tone: 'border border-line', title: t('dash.lowTitle', { n: n.low_stock }), body: n.low_first ?? '', cta: t('dash.restock'), to: 'products?low=1', btn: 'border-2 border-ink' },
