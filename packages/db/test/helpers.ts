@@ -42,7 +42,7 @@ export async function q<R extends pg.QueryResultRow = any>(
   text: string,
   params: unknown[] = [],
 ): Promise<R[]> {
-  const claims = 'claims' in who ? who.claims : who;
+  const claims: Claims = 'claims' in who ? (who as TestUser).claims : (who as Claims);
   return withClaims(pool, claims, async (c) => (await c.query<R>(text, params)).rows);
 }
 

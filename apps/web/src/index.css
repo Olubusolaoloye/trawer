@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: var(--brand, #0f766e);
+  --color-brand-ink: var(--brand-ink, #ffffff);
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+}
+
+:root { color-scheme: light; }
+html { -webkit-text-size-adjust: 100%; }
+body { @apply bg-stone-50 text-stone-900 antialiased; }
+:focus-visible { outline: 3px solid var(--color-brand); outline-offset: 2px; }
+button, a, input, select, textarea { touch-action: manipulation; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

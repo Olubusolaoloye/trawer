@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ANON } from '../src/claims';
-import { createProduct, ledgerMismatches, level, units } from './catalog';
+import { createProduct, ledgerMismatches, level, stubOrder, units } from './catalog';
 import { addStaff, createBusiness, expectPgError, pool, q, rpc, sql, type TestBusiness, type TestUser } from './helpers';
 
 let biz: TestBusiness;
@@ -107,7 +107,7 @@ describe('stock ledger', () => {
   it('reserve_stock is all-or-nothing and reports every short line', async () => {
     const p = await createProduct(biz, [{ price: 1, stock: 5 }, { price: 1, stock: 2 }, { price: 1, stock: 9 }]);
     const [a, b, c] = p.variantIds as [string, string, string];
-    const order = randomUUID();
+    const order = await stubOrder(biz.id);
     const err = await rpc(SVC, 'public.reserve_stock', [order, JSON.stringify([
       { variant_id: a, qty: 3 }, { variant_id: b, qty: 3 }, { variant_id: c, qty: 10 },
     ])]).catch((e) => e);
@@ -120,16 +120,16 @@ describe('stock ledger', () => {
   it('merges duplicate lines of the same variant', async () => {
     const p = await createProduct(biz, [{ price: 1, stock: 5 }]);
     const v = p.variantIds[0]!;
-    await expectPgError(rpc(SVC, 'public.reserve_stock', [randomUUID(), JSON.stringify([{ variant_id: v, qty: 3 }, { variant_id: v, qty: 3 }])]), 'insufficient_stock');
-    await rpc(SVC, 'public.reserve_stock', [randomUUID(), JSON.stringify([{ variant_id: v, qty: 2 }, { variant_id: v, qty: 3 }])]);
+    await expectPgError(rpc(SVC, 'public.reserve_stock', [await stubOrder(biz.id), JSON.stringify([{ variant_id: v, qty: 3 }, { variant_id: v, qty: 3 }])]), 'insufficient_stock');
+    await rpc(SVC, 'public.reserve_stock', [await stubOrder(biz.id), JSON.stringify([{ variant_id: v, qty: 2 }, { variant_id: v, qty: 3 }])]);
     expect(await level(v)).toMatchObject({ reserved: 5, available: 0 });
   });
 
   it('commit_sale and release_reservation are idempotent', async () => {
     const p = await createProduct(biz, [{ price: 1, stock: 10 }]);
     const v = p.variantIds[0]!;
-    const o1 = randomUUID();
-    const o2 = randomUUID();
+    const o1 = await stubOrder(biz.id);
+    const o2 = await stubOrder(biz.id);
     await rpc(SVC, 'public.reserve_stock', [o1, JSON.stringify([{ variant_id: v, qty: 4 }])]);
     await rpc(SVC, 'public.reserve_stock', [o2, JSON.stringify([{ variant_id: v, qty: 3 }])]);
     expect(await level(v)).toEqual({ on_hand: 10, reserved: 7, allocated: 0, available: 3 });
@@ -146,7 +146,7 @@ describe('stock ledger', () => {
     const mine = await createProduct(biz, [{ price: 1, stock: 5 }]);
     const theirs = await createProduct(other, [{ price: 1, stock: 5 }]);
     await expectPgError(
-      rpc(SVC, 'public.reserve_stock', [randomUUID(), JSON.stringify([
+      rpc(SVC, 'public.reserve_stock', [await stubOrder(biz.id), JSON.stringify([
         { variant_id: mine.variantIds[0], qty: 1 }, { variant_id: theirs.variantIds[0], qty: 1 },
       ])]),
       'cross_tenant_items',
@@ -174,7 +174,7 @@ describe('stock ledger', () => {
   it('cannot reduce on_hand below what is reserved', async () => {
     const p = await createProduct(biz, [{ price: 1, stock: 5 }]);
     const v = p.variantIds[0]!;
-    await rpc(SVC, 'public.reserve_stock', [randomUUID(), JSON.stringify([{ variant_id: v, qty: 4 }])]);
+    await rpc(SVC, 'public.reserve_stock', [await stubOrder(biz.id), JSON.stringify([{ variant_id: v, qty: 4 }])]);
     await expectPgError(rpc(biz.owner, 'public.adjust_stock', [v, -2, 'theft', null]), 'insufficient_stock');
   });
 
@@ -184,7 +184,7 @@ describe('stock ledger', () => {
     const [d] = await q(biz.owner, `insert into devices (business_id, location_id, name) values ($1, $2, 'Till 1') returning id`, [biz.id, biz.locationId]);
     await rpc(keeper, 'public.allocate_to_device', [d!.id, v, 6]);
     expect(await level(v)).toEqual({ on_hand: 10, reserved: 0, allocated: 6, available: 4 });
-    await expectPgError(rpc(SVC, 'public.reserve_stock', [randomUUID(), JSON.stringify([{ variant_id: v, qty: 5 }])]), 'insufficient_stock');
+    await expectPgError(rpc(SVC, 'public.reserve_stock', [await stubOrder(biz.id), JSON.stringify([{ variant_id: v, qty: 5 }])]), 'insufficient_stock');
     await expectPgError(rpc(keeper, 'public.allocate_to_device', [d!.id, v, 5]), 'insufficient_stock');
     await expectPgError(rpc(keeper, 'public.allocate_to_device', [d!.id, v, -7]), 'insufficient_allocation');
     await rpc(keeper, 'public.allocate_to_device', [d!.id, v, -6]);
@@ -211,7 +211,7 @@ describe('concurrency', () => {
     const p = await createProduct(biz, [{ price: 1, stock: 5 }]);
     const v = p.variantIds[0]!;
     const results = await Promise.allSettled(
-      Array.from({ length: 40 }, () => rpc(SVC, 'public.reserve_stock', [randomUUID(), JSON.stringify([{ variant_id: v, qty: 1 }])])),
+      Array.from({ length: 40 }, async () => rpc(SVC, 'public.reserve_stock', [await stubOrder(biz.id), JSON.stringify([{ variant_id: v, qty: 1 }])])),
     );
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(5);
     for (const r of results) if (r.status === 'rejected') expect((r.reason as Error).message).toBe('insufficient_stock');
@@ -221,8 +221,8 @@ describe('concurrency', () => {
   it('opposite line order in concurrent orders does not deadlock', async () => {
     const p = await createProduct(biz, [{ price: 1, stock: 100 }, { price: 1, stock: 100 }]);
     const [a, b] = p.variantIds as [string, string];
-    const jobs = Array.from({ length: 30 }, (_, i) =>
-      rpc(SVC, 'public.reserve_stock', [randomUUID(), JSON.stringify(i % 2
+    const jobs = Array.from({ length: 30 }, async (_, i) =>
+      rpc(SVC, 'public.reserve_stock', [await stubOrder(biz.id), JSON.stringify(i % 2
         ? [{ variant_id: a, qty: 1 }, { variant_id: b, qty: 1 }]
         : [{ variant_id: b, qty: 1 }, { variant_id: a, qty: 1 }])]));
     await Promise.all(jobs);

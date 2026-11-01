@@ -79,3 +79,10 @@ export async function ledgerMismatches(businessId?: string) {
       and (sl.on_hand <> coalesce(r.on_hand,0) or sl.reserved <> coalesce(r.reserved,0) or sl.allocated <> coalesce(r.allocated,0))`,
     [businessId ?? null]);
 }
+
+/** Insert a bare pending order (superuser) so low-level stock functions have a real order id. */
+export async function stubOrder(businessId: string): Promise<string> {
+  const [o] = await sql(`insert into orders (business_id, order_number, channel, location_id)
+                         values ($1, app.next_counter($1, 'order'), 'web', app.default_location($1)) returning id`, [businessId]);
+  return o!.id;
+}

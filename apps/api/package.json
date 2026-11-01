@@ -1,0 +1,30 @@
+{
+  "name": "@trawer/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env.local src/main.ts",
+    "start": "node --env-file-if-exists=../../.env.local --import tsx src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.5",
+    "@trawer/core": "workspace:*",
+    "@trawer/db": "workspace:*",
+    "hono": "^4.13.16",
+    "jose": "^6.2.14",
+    "pdf-lib": "^1.17.1",
+    "pg": "^8.23.1",
+    "sharp": "^0.35.5",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

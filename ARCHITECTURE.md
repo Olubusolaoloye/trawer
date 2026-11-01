@@ -9,16 +9,16 @@ boundaries, the data model's invariants and how a sale flows through each channe
 ```mermaid
 flowchart LR
   subgraph Clients
-    SF["Storefront<br/>{slug}.trawer.shop<br/>(Next.js, apps/web)"]
-    DASH["Business dashboard<br/>app.trawer.shop<br/>(Next.js, apps/web)"]
+    SF["Storefront<br/>{slug}.trawer.shop<br/>(React SPA, apps/web)"]
+    DASH["Business dashboard<br/>app.trawer.shop/dashboard<br/>(React, lazy-loaded chunk)"]
     POS["POS + Rider app<br/>(Expo RN, apps/pos)<br/>WatermelonDB / SQLite"]
     WA["Buyer on WhatsApp"]
     IG["Instagram / Facebook"]
   end
 
-  subgraph Web["apps/web (Node runtime, server only)"]
-    RSC["Server components +<br/>server actions"]
-    API["Route handlers<br/>/api/webhooks/* /api/pos/* /api/ai/* /api/cron/*"]
+  subgraph Web["apps/api (Hono on Node)"]
+    RSC["JSON API<br/>/api/store/* /api/biz/* /api/orders/*"]
+    API["Webhooks, POS sync, cron, AI<br/>/api/webhooks/* /api/pos/* /api/cron/*"]
     DAL["DAL: withUser() / withService()<br/>(RLS-scoped transactions)"]
   end
 
@@ -56,7 +56,7 @@ flowchart LR
   API --> META
   API --> ANTH
   IG <--> META
-  SF -. "order status" .-> RT
+  SF -. "order status (SSE)" .-> RSC
   RT --- PG
   CRON --- PG
   RSC --> ST
@@ -70,22 +70,25 @@ flowchart LR
 | Module | Owns | Must not |
 | --- | --- | --- |
 | `packages/db` | SQL migrations (`supabase/migrations`), seed, generated TS types, DB test harness | contain app logic beyond SQL functions |
-| `packages/core` | Pure domain logic: price resolver mirror, unit conversion, Zod schemas, money, WhatsApp bot state machine, POS sync engine, provider interfaces + adapters (Paystack, Meta, Termii, Anthropic) | import React/Next/Expo; touch the DB directly (talks through injected repositories) |
-| `apps/web` | Storefront, dashboard, webhooks, POS sync API, cron endpoints | write stock or prices outside the SQL functions; ship the service key to the browser |
+| `packages/core` | Pure domain logic: price resolver mirror, unit conversion, Zod schemas, money, WhatsApp bot state machine, POS sync engine, provider interfaces + adapters (Paystack, Meta, Termii, Anthropic) | import React/Expo or HTTP frameworks; touch the DB directly (talks through injected repositories) |
+| `apps/web` | React SPA: storefront (main bundle) + dashboard (lazy chunks) | talk to the database or hold any secret — it only calls `/api` |
+| `apps/api` | Hono API: auth, storefront + dashboard endpoints, webhooks, POS sync, cron, AI drafting; serves the built SPA on the same origin | write stock or prices outside the SQL functions |
 | `apps/pos` | Offline-first POS, multiple carts, receipts, cash-up, rider screen | trust its own stock as global truth (it only spends its *allocation*) |
 
 ### Data access (DAL)
 
-The web server talks to Postgres directly through two helpers in `apps/web/src/server/db.ts`:
+The API talks to Postgres directly through two helpers in `apps/api/src/db.ts`:
 
 * `withUser(claims, fn)` — opens a transaction, `SET LOCAL ROLE authenticated` (or `anon`) and
   sets `request.jwt.claims` exactly like PostgREST does, so **every query is subject to RLS**.
   Claims come from the verified Supabase Auth JWT.
-* `withService(fn)` — service role, used only by webhooks, cron and system jobs. It lives in a
-  `server-only` module so it cannot be bundled into a client component.
+* `withService(fn)` — service role, used only by webhooks, cron and system jobs. It lives in
+  `apps/api` only; the browser bundle has no database or provider credentials at all.
 
-This replaces PostgREST round-trips for server-rendered pages. Browser code never queries the DB.
-Supabase Realtime is still used in the browser for live order/payment status (anon key, RLS-scoped).
+Live order/payment status: an `AFTER UPDATE` trigger on `orders` does `pg_notify('trawer_orders', id)`;
+the API holds one `LISTEN` connection and pushes fresh, RLS-checked snapshots to buyers over
+Server-Sent Events (`GET /api/orders/:id/events`), with polling as a fallback. `orders` is also in
+the `supabase_realtime` publication for clients that prefer Supabase Realtime.
 
 ## 3. Invariants (enforced in the database)
 
@@ -125,7 +128,7 @@ Supabase Realtime is still used in the browser for live order/payment status (an
 ```mermaid
 sequenceDiagram
   participant B as Buyer (browser)
-  participant W as apps/web
+  participant W as apps/api
   participant DB as Postgres
   participant P as Paystack
   B->>W: Checkout (cart, address)
@@ -133,10 +136,11 @@ sequenceDiagram
   DB->>DB: resolve_price per line, insert order, reserve_stock (FOR UPDATE)
   DB-->>W: order + reservation_expires_at
   W->>P: ensure dedicated virtual account for customer
-  W-->>B: Order page: pay ₦X to account N (Realtime subscribed)
+  W-->>B: Order page: pay ₦X to account N (SSE subscribed)
   P->>W: webhook charge.success (signed)
   W->>DB: insert webhook_events (unique id) → apply_payment → commit_sale
-  DB-->>B: Realtime: payment_status = paid
+  DB-->>W: NOTIFY trawer_orders
+  W-->>B: SSE: payment_status = paid
   DB->>DB: enqueue WhatsApp notification "payment received"
 ```
 
@@ -182,7 +186,7 @@ sequenceDiagram
 | Job | Schedule | Implementation |
 | --- | --- | --- |
 | Expire reservations | every minute | `pg_cron` → `expire_reservations()` |
-| Social post scheduler | every minute | `pg_cron` + `pg_net` → `POST /api/cron/social` (or Vercel Cron) → `claim_due_social_posts` (`SKIP LOCKED`) → `SocialProvider` |
+| Social post scheduler | every minute | `pg_cron` + `pg_net` → `POST /api/cron/social` → `claim_due_social_posts` (`SKIP LOCKED`) → `SocialProvider` |
 | Notification outbox | every minute + on demand | `/api/cron/notifications` drains `notifications` (WhatsApp) |
 | Debt reminders | daily 09:00 WAT | `/api/cron/debt-reminders` enqueues template messages |
 | Retention purge | daily | `apply_retention_policy()` |

@@ -7,7 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./types": "./src/types.gen.ts"
+    "./types": "./src/types.gen.ts",
+    "./migrate": "./src/migrate.ts"
   },
   "scripts": {
     "db:reset": "tsx scripts/reset.ts",

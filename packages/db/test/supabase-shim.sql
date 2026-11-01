@@ -30,7 +30,7 @@ create table if not exists auth.users (
   created_at timestamptz not null default now(),
   deleted_at timestamptz
 );
-grant select on auth.users to service_role;
+grant select, insert, update on auth.users to service_role;
 
 create or replace function auth.jwt() returns jsonb
 language sql stable as $$
