@@ -11,9 +11,9 @@ Status legend: ✅ done · 🟡 partial · ⬜ not started
 | 3 | Price resolver + tests | ✅ | SQL `resolve_price` + TS mirror; parity test over 504 combinations; tier prices visible only to approved buyers |
 | 4 | Storefront + checkout + payments (sandbox) | ✅ | `place_order`, Paystack DVA webhook (signed, idempotent), expiry, cancel, **50-way cross-channel concurrency test**; React storefront + dashboard; 12 API tests; 3 Playwright e2e tests; Balogun Fabrics seed |
 | 5 | POS offline + sync + tests | ✅ | `sync_pos_sale` (idempotent; allocation → shared pool → recorded conflict, never negative), cash-up; `@trawer/core/pos` engine (multi-cart, offline allocation budget, outbox, receipts); bearer-token POS API; Expo app (WatermelonDB, camera scan, BLE printer, WhatsApp receipt, cash-up); dashboard Tills page. Tests: 9 DB (incl. two-device + online storm), 6 core engine, 5 API (two real engines syncing, lost-ack retry), 2 WatermelonDB repo tests. Android JS bundle builds (Hermes); native APK not built here (no Android SDK) |
-| 6 | WhatsApp bot + notifications | ⬜ | |
+| 6 | WhatsApp bot + notifications | ✅ | Bot state machine in `@trawer/core/whatsapp` (menu, categories, search incl. "how much…", colour, piece/bundle/carton, "2 cartons" parsing, stock guard, cart, pickup/delivery, place order, transfer details, my orders, hand-off to a person). Signed webhook (one processing per message id), first-contact customers, per-business number + Vault token (MFA, write-only). Notification outbox filled by DB triggers (placed, paid, credit-confirmed, packed, dispatched, delivered, failed, wholesale approved; de-duplicated), cron sender: free text inside 24 h, approved templates outside, retries with back-off, Meta read receipts. Catalogue sync of live stock (delta). Public tracking page `/t/:token` (from M8). Tests: 9 core bot + 3 helpers, 12 API (incl. same tier price on web and WhatsApp), 5 DB, 2 e2e. Debt-reminder sending lands with M7 (template + kind ready). |
 | 7 | Invoices, debtors' book | ⬜ | |
-| 8 | Delivery tracking | ⬜ | |
+| 8 | Delivery tracking | 🟡 | Public tracking page by token done in M6; rider screen, proof photo, status updates to come |
 | 9 | Instagram scheduler | ⬜ | |
 | 10 | Reports | ⬜ | |
 | 11 | Hardening | ⬜ | |
@@ -55,6 +55,9 @@ debt reminders (M7), WhatsApp bot (M6), rider/delivery steps (M8), Instagram pos
 | POS models use explicit accessors instead of WatermelonDB decorators. | Avoids a Babel decorators transform that conflicts with Expo SDK 58's Babel preset; identical runtime behaviour. |
 | POS auth: phone OTP on the till, tokens returned in the body (`X-Client: pos`) and stored in the keystore; `/api/pos/*` accepts bearer tokens only. | POS endpoints are CSRF-exempt, so they must never accept ambient browser cookies. |
 | Offline sales keep the price the till charged (`price_source = pos_offline`); a mismatch with the current server price flags the order `offline_price_mismatch` for review. Cashier credit sales are flagged `credit_sale_needs_approval`. | The sale already happened; the server records truth and surfaces anomalies instead of rejecting. |
+| WhatsApp buyers are identified by their WhatsApp number; first contact creates a retail customer (lawful basis: fulfilling their request). Marketing opt-in stays false. | NDPA: no marketing without opt-in. |
+| WhatsApp hand-off: "agent/person" pauses the bot for 12 h (or until the buyer types "menu"); staff see waiting chats on Today and reply from their own WhatsApp. | Unified inbox is out of scope for Phase 1. |
+| Self-hosted fonts (`@fontsource`), no source maps in production, bundle secret scan in `build`, uniform auth errors. | Requested by the product owner: no third-party font requests, don't reveal key/API structure. |
 | POS bootstrap returns up to 20,000 changed variants per call (delta by `updated_at`). | Enough for first sync of most shops; paging for 50k+ catalogues is a hardening item. |
 
 ## How to run the tests

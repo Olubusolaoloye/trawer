@@ -10,6 +10,9 @@ import { storeRoutes } from './routes/store';
 import { orderRoutes } from './routes/orders';
 import { webhookRoutes } from './routes/webhooks';
 import { posRoutes } from './routes/pos';
+import { whatsappWebhook } from './routes/whatsapp-webhook';
+import { cronRoutes } from './routes/cron';
+import { trackRoutes } from './routes/track';
 import { dashboardRoutes } from './routes/dashboard';
 import { devRoutes } from './routes/dev';
 import { env } from './env';
@@ -28,6 +31,8 @@ export function createApp() {
     c.set('requestId', c.req.header('x-request-id') ?? randomUUID());
     c.set('claims', null);
     c.set('session', null);
+    // Cron jobs and webhooks authenticate with their own secret / signature, never a user session.
+    if (c.req.path.startsWith('/api/cron/') || c.req.path.startsWith('/api/webhooks/')) return next();
     // Devices (POS) send a bearer token; browsers use httpOnly cookies.
     const bearer = c.req.header('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
     if (bearer) {
@@ -86,7 +91,10 @@ export function createApp() {
   app.route('/api/auth', authRoutes);
   app.route('/api/store', storeRoutes);
   app.route('/api/orders', orderRoutes);
+  app.route('/api/webhooks/whatsapp', whatsappWebhook);
   app.route('/api/webhooks', webhookRoutes);
+  app.route('/api/cron', cronRoutes);
+  app.route('/api/track', trackRoutes);
   app.route('/api/pos', posRoutes);
   app.route('/api/biz', dashboardRoutes);
   if (env.NODE_ENV !== 'production') app.route('/api/dev', devRoutes);

@@ -6,6 +6,7 @@ import { Badge, Button, Card, ErrorNote, Field, Input, Select } from '../compone
 import { t } from '../i18n';
 import { useBiz } from './context';
 import { MfaPrompt } from './MfaGate';
+import { WhatsAppCard } from './WhatsAppCard';
 
 /** Runs a mutation; if the API wants MFA, shows the TOTP prompt and retries once verified. */
 function useMfaMutation(fn: () => Promise<void>) {
@@ -62,6 +63,8 @@ export default function SettingsPage() {
           </form>
         </Card>
       )}
+
+      <WhatsAppCard />
 
       <Link to={`${b.base}/tills`} className="flex min-h-14 items-center justify-between rounded-2xl border bg-white px-4 font-semibold">Tills (POS) & stock alerts <span aria-hidden>›</span></Link>
 

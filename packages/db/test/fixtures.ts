@@ -41,4 +41,6 @@ export async function populateBusiness(biz: TestBusiness): Promise<void> {
   await rpc(cashier, 'public.sync_pos_sale', [JSON.stringify({ device_id: d!.id, client_id: crypto.randomUUID(), items: [{ variant_id: p.variantIds[0], qty: 1, unit_price_kobo: 250000 }], payments: [{ client_id: crypto.randomUUID(), method: 'cash', amount_kobo: 250000 }] })]);
   const day = (await sql(`select (now() at time zone 'Africa/Lagos')::date::text d`))[0]!.d;
   await rpc(cashier, 'public.submit_cash_up', [biz.id, day, 250000, d!.id, null]);
+  // messaging (order notifications are queued by the order above)
+  await sql(`insert into whatsapp_sessions (business_id, wa_phone, customer_id, last_inbound_at) values ($1, $2, $3, now())`, [biz.id, buyer.phone, buyer.customerId]);
 }

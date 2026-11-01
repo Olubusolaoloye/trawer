@@ -11,7 +11,7 @@ interface TodayData {
   taken_today_kobo: number; taken_same_day_last_week_kobo: number; sales_today_kobo: number; profit_today_kobo: number | null;
   orders_today: number; to_pack: number; on_the_way: number; awaiting_transfer: number; owed_kobo: number; late_kobo: number;
   by_channel: Record<string, number>; by_hour: { hour: number; channel: string; total: number }[];
-  needs_you: { wholesale_pending: number; wholesale_first: string | null; unplaced_payments: number; unplaced_kobo: number; conflicts: number; conflict_first: string | null; low_stock: number; low_first: string | null; attention_orders: number };
+  needs_you: { whatsapp_handoffs?: number; wholesale_pending: number; wholesale_first: string | null; unplaced_payments: number; unplaced_kobo: number; conflicts: number; conflict_first: string | null; low_stock: number; low_first: string | null; attention_orders: number };
   live_orders: { id: string; order_number: number; channel: string; status: string; payment_status: string; total_kobo: number; customer: string }[];
   best_sellers: { name: string; qty: number }[];
   tills: { id: string; name: string; last_sync_at: string | null }[];
@@ -38,6 +38,7 @@ export default function Today() {
   const hours = Array.from({ length: 11 }, (_, i) => 8 + i);
   const maxHour = Math.max(1, ...hours.map((h) => data.by_hour.filter((x) => x.hour === h).reduce((s, x) => s + x.total, 0)));
   const needs = [
+    (n.whatsapp_handoffs ?? 0) > 0 && { tone: 'border-2 border-green', title: t('dash.chatsWaiting', { n: n.whatsapp_handoffs ?? 0 }), body: t('dash.chatsWaitingBody'), cta: t('dash.open'), to: 'settings#whatsapp', btn: 'bg-green text-white' },
     n.wholesale_pending > 0 && { tone: 'border-2 border-indigo', title: t(n.wholesale_pending === 1 ? 'dash.waitingWholesaleOne' : 'dash.waitingWholesale', { n: n.wholesale_pending }), body: n.wholesale_first ?? '', cta: t('dash.review'), to: 'customers?pending=1', btn: 'bg-indigo text-white' },
     n.unplaced_payments > 0 && { tone: 'border-2 border-red', title: t('dash.unplaced', { amount: formatNaira(n.unplaced_kobo) }), body: t('dash.unplacedBody', { n: n.unplaced_payments }), cta: t('dash.placeIt'), to: 'orders', btn: 'bg-ink text-white' },
     n.conflicts > 0 && { tone: 'border border-line', title: t('dash.conflictsTitle', { n: n.conflicts }), body: n.conflict_first ?? '', cta: t('dash.count'), to: 'tills', btn: 'border-2 border-ink' },

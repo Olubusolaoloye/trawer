@@ -70,3 +70,31 @@ test('dashboard: owner signs in and sees today’s numbers and the wholesale que
   await page.goto(page.url().replace(/\/customers.*$/, '/orders'));
   await expect(page.getByText('Awaiting transfer').first()).toBeVisible();
 });
+
+test('public tracking link works without signing in and shows no personal details', async ({ page }) => {
+  const pg = await import('pg');
+  const c = new pg.default.Client({ connectionString: process.env.E2E_DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/trawer_dev' });
+  await c.connect();
+  const { rows } = await c.query(`select tracking_token, order_number from orders where delivery_method = 'delivery' order by order_number limit 1`);
+  await c.end();
+  await page.goto(`/t/${rows[0].tracking_token}`);
+  await expect(page.getByRole('heading', { name: `Order #${rows[0].order_number}` })).toBeVisible();
+  await expect(page.getByText('Balogun Fabrics').first()).toBeVisible();
+  await expect(page.getByText(/\+234|Ojuelegba/)).toHaveCount(0);
+});
+
+test('owner connects WhatsApp in settings (token stays hidden, MFA asked)', async ({ page }) => {
+  await page.goto('/dashboard');
+  await signIn(page, '+2348030000001');
+  await page.getByText("You've taken today").waitFor();
+  await page.goto(page.url().replace(/\/?$/, '/settings'));
+  await page.getByLabel('Phone number ID').fill('123456789012');
+  await page.getByLabel('Access token').fill('a-fake-token-for-the-e2e-test-0123456789');
+  await page.locator('form', { has: page.getByLabel('Phone number ID') }).getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('heading', { name: 'Confirm it’s you' })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('6-digit code').fill('000000');
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page.getByText(/Connected/)).toBeVisible();
+  await expect(page.getByLabel('Access token')).toHaveValue('');
+});

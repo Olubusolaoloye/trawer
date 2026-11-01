@@ -63,7 +63,45 @@ dashboardRoutes.get('/:bid', (c) => asStaff(c, async (tx, b) => {
 
 dashboardRoutes.get('/:bid/today', (c) => asStaff(c, async (tx, b) => {
   const r = await one(tx, `select public.dashboard_today($1) as d`, [b]);
+  const handoffs = await one(tx, `select count(*)::int n from whatsapp_sessions where business_id = $1 and human_handoff_at > now() - interval '12 hours'`, [b]);
+  r!.d.needs_you.whatsapp_handoffs = handoffs?.n ?? 0;
   return c.json(r!.d);
+}));
+
+// ------------------------------------------------------------------------------------------
+// WhatsApp: connection (token goes to Vault, never comes back), chats waiting, message log
+// ------------------------------------------------------------------------------------------
+dashboardRoutes.get('/:bid/whatsapp', (c) => asStaff(c, async (tx, b) => {
+  const [conn, chats, log] = await Promise.all([
+    one(tx, `select whatsapp_phone_number_id is not null as connected, whatsapp_display_phone display_phone, whatsapp_catalog_id is not null as catalog,
+                    whatsapp_catalog_synced_at catalog_synced_at, whatsapp_token_secret_id is not null as own_token
+             from businesses where id = $1`, [b]),
+    many(tx, `select s.id, s.wa_phone, coalesce(c.name, s.profile_name) name, s.human_handoff_at, s.last_inbound_at
+              from whatsapp_sessions s left join customers c on c.id = s.customer_id
+              where s.business_id = $1 and s.human_handoff_at > now() - interval '12 hours' order by s.human_handoff_at desc`, [b]),
+    many(tx, `select n.id, n.kind, n.status, n.used_template, n.created_at, n.sent_at, n.last_error, o.order_number
+              from notifications n left join orders o on o.id = n.order_id where n.business_id = $1 order by n.created_at desc limit 30`, [b]),
+  ]);
+  return c.json({ connection: conn, chats, notifications: log });
+}));
+
+dashboardRoutes.put('/:bid/whatsapp', async (c) => {
+  const input = await body(c, z.object({
+    phone_number_id: z.string().trim().regex(/^\d{6,20}$/).or(z.literal('')),
+    display_phone: z.string().trim().max(20).optional(),
+    catalog_id: z.string().trim().regex(/^\d{6,20}$/).or(z.literal('')).optional(),
+    token: z.string().trim().min(20).max(1000).optional(),
+  }));
+  return asStaff(c, async (tx, b) => {
+    await tx.query(`select public.set_whatsapp_connection($1, $2, $3, $4, $5)`, [b, input.phone_number_id, input.display_phone ?? '', input.catalog_id ?? '', input.token ?? null]);
+    return c.json({ ok: true });
+  });
+});
+
+dashboardRoutes.post('/:bid/whatsapp/chats/:sid/done', (c) => asStaff(c, async (tx, b) => {
+  const r = await tx.query(`update whatsapp_sessions set human_handoff_at = null where id = $1 and business_id = $2`, [c.req.param('sid'), b]);
+  if (r.rowCount === 0) throw new ApiError(403, 'permission_denied');
+  return c.json({ ok: true });
 }));
 
 dashboardRoutes.patch('/:bid', async (c) => {

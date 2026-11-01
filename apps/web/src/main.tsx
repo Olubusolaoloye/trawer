@@ -20,6 +20,7 @@ import { LOCALES, setLocale, type Locale } from './i18n';
 // Everything staff-facing is split out of the storefront bundle.
 const Dashboard = lazy(() => import('./dashboard/DashboardApp'));
 const Landing = lazy(() => import('./Landing'));
+const TrackPage = lazy(() => import('./TrackPage'));
 
 function storeRoutes() {
   return (
@@ -47,6 +48,7 @@ function App() {
   if (subdomainSlug) {
     return (
       <Routes>
+        <Route path="/t/:token" element={lazyEl(<TrackPage />)} />
         <Route path="/" element={<StoreCtx.Provider value={{ slug: subdomainSlug, base: '' }}><StoreLayout /></StoreCtx.Provider>}>{storeRoutes()}</Route>
       </Routes>
     );
@@ -54,6 +56,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={lazyEl(<Landing />)} />
+      <Route path="/t/:token" element={lazyEl(<TrackPage />)} />
       <Route path="/s/:slug" element={<PathStore />}>{storeRoutes()}</Route>
       <Route path="/dashboard/*" element={lazyEl(<Dashboard />)} />
     </Routes>
