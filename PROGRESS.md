@@ -72,6 +72,15 @@ debt reminders (M7), WhatsApp bot (M6), rider/delivery steps (M8), Instagram pos
 - **Security headers**: CSP (`default-src 'self'`, fonts self-only, `frame-ancestors 'self'`), `X-Frame-Options: SAMEORIGIN` (needed for the designer preview only).
 - Tests: 3 core, 3 API, 1 e2e (designer → live preview → publish → buyers see it).
 
+### POS refresh (v2 look)
+- Same Market Light v2 language as the web app: glowing ink header with the shop initial and a breathing "Live" dot, rounded content sheet, soft shadows instead of hard outlines, lucide icons everywhere (react-native-svg), spring press feedback + haptics (expo-haptics), bottom sheets on phones / centred dialogs on tablets.
+- Sell: cart chips with item-count badges, icon search + scan button, product tiles with photo or colour thumbnail, line cards with a pill stepper (bin icon at qty 1), customer pill, big total, Charge button; scanner gets an aim frame. Tablet empty state prompts scan/search.
+- Pay: method tiles (Cash, Card, Transfer, USSD, QR, split by tapping several), quick-cash chips (Exact / next round note), live "Change to give / Still to pay", switches for credit + manager override.
+- Receipt: animated success mark, big change-to-give, Print / WhatsApp / Next customer.
+- Cash-up: ink "taken today" card, per-method table with icons, ink display + soft keypad with `00` key (hold ⌫ to clear).
+- Sign-in, setup and settings rebuilt with grouped rows. On phones the offline pill uses a short label so the shop name stays readable.
+- Native deps pinned to Expo SDK 58's own table (react-native-svg 15.16.0, expo-haptics ~58.0.7). Fonts remain bundled.
+
 ## How to run the tests
 
 ```bash

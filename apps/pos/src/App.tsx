@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { Text, View, useWindowDimensions } from 'react-native';
+import { Calculator, Settings as SettingsIcon, ShoppingBag } from 'lucide-react-native';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { BricolageGrotesque_700Bold, BricolageGrotesque_800ExtraBold } from '@expo-google-fonts/bricolage-grotesque';
@@ -12,7 +13,7 @@ import { SetupScreen } from './screens/SetupScreen';
 import { SellScreen } from './screens/SellScreen';
 import { CashUpScreen } from './screens/CashUpScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
-import { colors, fonts, SyncPill } from './components/ui';
+import { colors, fonts, Glow, Press, SyncPill, type Icon } from './components/ui';
 
 type Phase = 'loading' | 'signin' | 'setup' | 'ready';
 type Tab = 'sell' | 'cashup' | 'settings';
@@ -38,38 +39,63 @@ export default function App() {
   );
 }
 
+const TABS: { id: Tab; label: string; icon: Icon }[] = [
+  { id: 'sell', label: 'Sell', icon: ShoppingBag },
+  { id: 'cashup', label: 'Cash-up', icon: Calculator },
+  { id: 'settings', label: 'Settings', icon: SettingsIcon },
+];
+
 function Till({ binding, onSignOut }: { binding: DeviceBinding; onSignOut: () => void }) {
   const engine = useMemo(() => getEngine(binding), [binding]);
   const [tab, setTab] = useState<Tab>('sell');
   const [status, setStatus] = useState<SyncStatus | null>(null);
   useEffect(() => startSyncLoop(engine, setStatus), [engine]);
   const shop = { name: binding.businessName };
+  const narrow = useWindowDimensions().width < 520;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.ink }}>
-      <View accessibilityRole="summary" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.ink }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: '#fff', fontFamily: fonts.display, fontSize: 19 }} numberOfLines={1}>{binding.businessName}</Text>
+    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.ink }}>
+      <View accessibilityRole="summary" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 14, backgroundColor: colors.ink, overflow: 'hidden' }}>
+        <Glow id="hdr" />
+        <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#fff', fontFamily: fonts.display, fontSize: 20 }}>{binding.businessName.charAt(0)}</Text>
         </View>
-        <SyncPill
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: '#fff', fontFamily: fonts.display, fontSize: 19, letterSpacing: -0.3 }} numberOfLines={1}>{binding.businessName}</Text>
+          <Text style={{ color: colors.onInkMuted, fontFamily: fonts.semi, fontSize: 12 }} numberOfLines={1}>Till · {binding.role}</Text>
+        </View>
+        <SyncPill onInk
           tone={status?.conflicts ? 'fix' : status?.online ? 'live' : 'offline'}
           label={status?.conflicts ? `${status.conflicts} to fix`
             : status?.online ? (status.syncing ? 'Syncing…' : status.pending ? `Live · sending ${status.pending}` : 'Live')
-            : `Offline · ${status?.pending ?? 0} saved · keep selling`} />
+            : narrow ? `Offline · ${status?.pending ?? 0} saved` : `Offline · ${status?.pending ?? 0} saved · keep selling`} />
       </View>
-      <View style={{ flex: 1, backgroundColor: colors.paper }}>
+      <View style={{ flex: 1, backgroundColor: colors.paper, borderTopLeftRadius: 22, borderTopRightRadius: 22, overflow: 'hidden', marginTop: -8 }}>
         {tab === 'sell' && <SellScreen engine={engine} binding={binding} shop={shop} />}
         {tab === 'cashup' && <CashUpScreen engine={engine} binding={binding} pending={status?.pending ?? 0} />}
         {tab === 'settings' && <SettingsScreen binding={binding} onSignOut={onSignOut} />}
       </View>
-      <View accessibilityRole="tablist" style={{ flexDirection: 'row', borderTopWidth: 1, borderColor: colors.line, backgroundColor: '#fff' }}>
-        {([['sell', 'Sell'], ['cashup', 'Cash-up'], ['settings', 'Settings']] as const).map(([id, label]) => (
-          <Pressable key={id} accessibilityRole="tab" accessibilityState={{ selected: tab === id }} onPress={() => setTab(id)}
-            style={{ flex: 1, minHeight: 60, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 16, fontFamily: tab === id ? fonts.black : fonts.semi, color: tab === id ? colors.green : colors.body }}>{label}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <TabBar tab={tab} onChange={setTab} />
     </SafeAreaView>
+  );
+}
+
+function TabBar({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View accessibilityRole="tablist" style={{ flexDirection: 'row', gap: 6, paddingHorizontal: Math.max(10, (useWindowDimensions().width - 640) / 2), paddingTop: 8, paddingBottom: Math.max(insets.bottom, 10), backgroundColor: colors.surface, borderTopWidth: 1, borderColor: 'rgba(228,222,210,0.7)' }}>
+      {TABS.map(({ id, label, icon: I }) => {
+        const on = tab === id;
+        return (
+          <Press key={id} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: on }} onPress={() => onChange(id)} scaleTo={0.94}
+            style={{ flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+            <View style={{ paddingHorizontal: 18, paddingVertical: 5, borderRadius: 999, backgroundColor: on ? colors.green50 : 'transparent' }}>
+              <I size={23} color={on ? colors.green : colors.body} strokeWidth={on ? 2.6 : 2.1} />
+            </View>
+            <Text style={{ fontSize: 13, fontFamily: on ? fonts.black : fonts.semi, color: on ? colors.greenInk : colors.body }}>{label}</Text>
+          </Press>
+        );
+      })}
+    </View>
   );
 }
