@@ -40,6 +40,8 @@
 
 :root { color-scheme: light; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+/* Phones: fixed bottom bars (dashboard tabs, store cart bar) must never cover a focused or scrolled-to control. */
+@media (max-width: 1023px) { html { scroll-padding-bottom: 7.5rem; } }
 body { @apply bg-paper text-ink antialiased; font-feature-settings: "cv11", "ss01"; }
 ::selection { background: rgb(242 183 5 / 0.45); }
 .num { font-variant-numeric: tabular-nums; }

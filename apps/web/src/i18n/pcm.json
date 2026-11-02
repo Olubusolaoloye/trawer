@@ -133,5 +133,10 @@
   "deliv.dispatch": "Send am go",
   "deliv.markDelivered": "E don reach",
   "deliv.markFailed": "E no reach",
-  "track.onTheWayWith": "{name} dey bring your order come"
+  "track.onTheWayWith": "{name} dey bring your order come",
+  "social.postNow": "Post am now",
+  "social.schedule": "Plan the post",
+  "social.connect": "Connect with Facebook",
+  "social.postProduct": "Post am for Instagram/Facebook",
+  "dash.social": "Social posts"
 }

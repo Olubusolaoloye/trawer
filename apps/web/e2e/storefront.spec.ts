@@ -1,5 +1,15 @@
 import { expect, test } from '@playwright/test';
 
+// Each test is its own session: start every test with fresh OTP rate-limit windows
+// (the suite signs in as the same owner many times; the limiter itself is tested in the API suite).
+test.beforeEach(async () => {
+  const pg = await import('pg');
+  const c = new pg.default.Client({ connectionString: process.env.E2E_DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/trawer_dev' });
+  await c.connect();
+  await c.query('delete from rate_limits');
+  await c.end();
+});
+
 async function signIn(page: import('@playwright/test').Page, phone: string) {
   await page.getByLabel('Phone number').fill(phone);
   await page.getByRole('button', { name: 'Send code' }).click();
@@ -234,4 +244,40 @@ test('delivery: owner packs, sends out and confirms with a proof photo; the publ
   await expect(progress.getByText('Delivered')).toBeVisible();
   await expect(progress.locator('p.text-muted')).toHaveCount(4); // a time under every step
   await expect(page.getByRole('img')).toHaveCount(0);           // no proof photo in public
+});
+
+test('social: owner connects Instagram + Facebook (sandbox), posts a product, and sees it published', async ({ page, request }) => {
+  const pg = await import('pg');
+  const db = new pg.default.Client({ connectionString: process.env.E2E_DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/trawer_dev' });
+  await db.connect();
+  await db.query(`delete from social_posts using businesses b where b.id = social_posts.business_id and b.slug = 'balogun'`);
+  await db.query(`delete from social_accounts using businesses b where b.id = social_accounts.business_id and b.slug = 'balogun'`);
+
+  await page.goto('/dashboard');
+  await signIn(page, '+2348030000001');
+  await page.getByText("You've taken today").waitFor();
+  await page.goto(`${page.url().replace(/\/$/, '')}/social`);
+  await page.getByRole('button', { name: 'Connect with Facebook' }).click();
+  // Sandbox Facebook Login comes straight back with the Pages to choose from.
+  await expect(page.getByRole('heading', { name: 'Which Page should we post to?' })).toBeVisible();
+  await expect(page.getByLabel(/My Shop \(Facebook Page\)/)).toBeChecked();
+  await page.getByRole('button', { name: 'Use this Page' }).click();
+  await expect(page.getByRole('heading', { name: 'Confirm it’s you' })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('6-digit code').fill('000000');
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page.getByText('@myshop.ng').first()).toBeVisible();
+
+  await page.getByLabel('Find products').fill('Kano');
+  await page.getByRole('list', { name: 'Products' }).getByRole('button').first().click();
+  await expect(page.getByLabel('Caption')).toHaveValue(/Kano Lace .* — ₦/);
+  await page.getByRole('button', { name: 'Post now' }).click();
+  await expect(page.getByText('Posting now')).toBeVisible();
+
+  const cron = await request.post('/api/cron/social', { headers: { authorization: 'Bearer dev-cron-secret-change-me' } });
+  expect(await cron.json()).toMatchObject({ published: 2 });
+  await page.reload();
+  await page.getByRole('tab', { name: /Published/ }).click();
+  await expect(page.getByRole('link', { name: 'View' })).toHaveCount(2);
+  await db.end();
 });

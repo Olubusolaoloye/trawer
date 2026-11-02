@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router';
-import { ImagePlus, Plus, Trash2 } from 'lucide-react';
+import { ImagePlus, Plus, Send, Trash2 } from 'lucide-react';
 import { nairaToKobo } from '@trawer/core/money';
 import { api } from '../lib/api';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
@@ -186,6 +186,7 @@ function ProductDetail() {
   const [historyFor, setHistoryFor] = useState<string | null>(null);
   const mfa = useMfaRetry();
   const setStatus = useMutation(async (status: string) => { await api(key, { method: 'PATCH', json: { status } }); invalidate(key); });
+  const setAutopost = useMutation(async (on: boolean) => { await api(key, { method: 'PATCH', json: { social_autopost: on } }); invalidate(key); });
   if (!data) return <Spinner />;
   const p = data.product;
   return (
@@ -203,7 +204,19 @@ function ProductDetail() {
             : <Button size="sm" onClick={() => void setStatus.run('active')}>Publish</Button>)}
         </div>
       </div>
-      <ErrorNote error={setStatus.error} />
+      <ErrorNote error={setStatus.error ?? setAutopost.error} />
+      {b.can('social.manage') && (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-line/70 bg-white p-3 shadow-card">
+          <Link to={`${b.base}/social?products=${p.id}`} className={cx('press inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold text-white', p.status !== 'active' && 'pointer-events-none opacity-50')}
+            style={{ background: 'linear-gradient(135deg,#F58529,#DD2A7B 45%,#8134AF)' }} aria-disabled={p.status !== 'active'}>
+            <Send className="size-4" aria-hidden />{t('social.postProduct')}
+          </Link>
+          <label className="flex flex-1 cursor-pointer items-center gap-2 text-sm">
+            <input type="checkbox" className="size-5 accent-green" checked={!!p.social_autopost} disabled={setAutopost.pending} onChange={(e) => void setAutopost.run(e.target.checked)} />
+            <span><b>{t('social.autopost')}</b> <span className="text-muted">{t('social.autopostHint')}</span></span>
+          </label>
+        </div>
+      )}
       {data.images.length > 0 && (
         <div className="flex gap-2 overflow-x-auto">{data.images.map((i: any) => <img key={i.id} src={i.url} alt="" className="size-24 rounded-xl object-cover" />)}</div>
       )}

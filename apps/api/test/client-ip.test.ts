@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Hono } from 'hono';
-import { clientIp } from '../src/http';
+import { clientIp, type AppEnv } from '../src/http';
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 app.get('/ip', (c) => c.text(clientIp(c)));
 const ip = async (xff?: string) => (await app.request('/ip', { headers: xff ? { 'x-forwarded-for': xff } : {} })).text();
 

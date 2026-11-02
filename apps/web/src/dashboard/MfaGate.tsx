@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { useMutation } from '../lib/use-api';
+import type { ApiError } from '../lib/api';
 import { Button, Card, ErrorNote, Field, Input } from '../components/ui';
 import { t } from '../i18n';
 
@@ -49,5 +50,17 @@ export function useMfaRetry() {
     guard: (err: { code?: string } | null | undefined, retry: () => void) => {
       if (err?.code === 'mfa_required') setPending(() => retry);
     },
+  };
+}
+
+/** A mutation that asks for the authenticator code when the server says mfa_required, then retries. */
+export function useMfaMutation(fn: () => Promise<void>) {
+  const m = useMutation(fn);
+  const [ask, setAsk] = useState(false);
+  const needs = (m.error as ApiError | null)?.code === 'mfa_required';
+  return {
+    ...m,
+    run: async () => { await m.run(); },
+    prompt: (needs || ask) ? <MfaPrompt onVerified={() => { setAsk(false); m.setError(null); void m.run(); }} onCancel={() => { setAsk(false); m.setError(null); }} /> : null,
   };
 }

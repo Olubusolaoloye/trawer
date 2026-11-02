@@ -11,6 +11,7 @@ import { ApiError, type AppEnv } from '../http';
 import { logError } from '../log';
 import { messagingProvider, sendTarget, trackingLink } from '../whatsapp';
 import { syncWhatsAppCatalogs } from '../catalog';
+import { publishDuePosts } from '../social';
 
 export const cronRoutes = new Hono<AppEnv>();
 
@@ -33,6 +34,8 @@ cronRoutes.post('/debt-reminders', async (c) => {
   return c.json({ queued, ...(await drainNotifications(200)) });
 });
 cronRoutes.post('/whatsapp-catalog', async (c) => c.json(await syncWhatsAppCatalogs()));
+/** Every minute: publish due Instagram/Facebook posts. */
+cronRoutes.post('/social', async (c) => c.json(await publishDuePosts()));
 
 /** Send due notifications: free text inside the 24-hour window, approved template outside it. */
 export async function drainNotifications(limit = 50): Promise<{ sent: number; failed: number }> {

@@ -76,3 +76,15 @@ export async function readPrivateImage(bucket: Exclude<Bucket, 'products'>, path
   const src = Buffer.from(await res.arrayBuffer());
   return sharp(src).resize({ width: Math.min(width, 1600), withoutEnlargement: true }).webp({ quality: 72 }).toBuffer();
 }
+
+/** Original bytes of a public product image (used to make Instagram-ready JPEGs). */
+export async function readProductOriginal(path: string): Promise<Buffer | null> {
+  if (!/^[A-Za-z0-9/_-]+\.webp$/.test(path)) return null;
+  if (env.STORAGE_DRIVER === 'supabase') {
+    const res = await fetch(`${env.SUPABASE_URL}/storage/v1/object/public/products/${path}`);
+    return res.ok ? Buffer.from(await res.arrayBuffer()) : null;
+  }
+  const file = normalize(join(LOCAL_ROOT, 'products', path));
+  if (!file.startsWith(join(LOCAL_ROOT, 'products'))) return null;
+  return readFile(file).catch(() => null);
+}

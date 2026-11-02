@@ -1,25 +1,14 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { api, type ApiError } from '../lib/api';
+import { api } from '../lib/api';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { Badge, Button, Card, ErrorNote, Field, Input, Select } from '../components/ui';
 import { t } from '../i18n';
 import { useBiz } from './context';
-import { MfaPrompt } from './MfaGate';
+import { useMfaMutation } from './MfaGate';
 import { WhatsAppCard } from './WhatsAppCard';
 
 /** Runs a mutation; if the API wants MFA, shows the TOTP prompt and retries once verified. */
-function useMfaMutation(fn: () => Promise<void>) {
-  const m = useMutation(fn);
-  const [ask, setAsk] = useState(false);
-  const needs = (m.error as ApiError | null)?.code === 'mfa_required';
-  return {
-    ...m,
-    run: async () => { await m.run(); },
-    prompt: (needs || ask) ? <MfaPrompt onVerified={() => { setAsk(false); m.setError(null); void m.run(); }} onCancel={() => { setAsk(false); m.setError(null); }} /> : null,
-  };
-}
-
 export default function SettingsPage() {
   const b = useBiz();
   const [params] = useSearchParams();

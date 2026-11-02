@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router';
-import { Boxes, ExternalLink, HandCoins, Home, MonitorSmartphone, Palette, Plus, Settings, ShoppingCart, Users } from 'lucide-react';
+import { Boxes, ExternalLink, HandCoins, Megaphone, Home, MonitorSmartphone, Palette, Plus, Settings, ShoppingCart, Users } from 'lucide-react';
 import { api } from '../lib/api';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { PhoneSignIn } from '../components/PhoneSignIn';
@@ -17,6 +17,7 @@ const SettingsPage = lazy(() => import('./SettingsPage'));
 const Tills = lazy(() => import('./Tills'));
 const Debtors = lazy(() => import('./Debtors'));
 const StoreDesigner = lazy(() => import('./StoreDesigner'));
+const Social = lazy(() => import('./Social'));
 
 interface Me { user: { id: string; phone: string; aal: string } | null; staff: { business_id: string; role: string; name: string; slug: string }[] }
 
@@ -144,6 +145,7 @@ function BusinessShell() {
   const extra = [
     { to: `${base}/debtors`, label: t('debt.title'), icon: HandCoins },
     { to: `${base}/tills`, label: t('dash.tills'), icon: MonitorSmartphone, badge: data.stats.conflicts, alert: true },
+    ...(data.permissions.includes('social.manage') ? [{ to: `${base}/social`, label: t('dash.social'), icon: Megaphone }] : []),
     ...(data.permissions.includes('settings.manage') ? [{ to: `${base}/design`, label: t('dash.design'), icon: Palette }] : []),
   ];
   return (
@@ -189,6 +191,7 @@ function BusinessShell() {
               <Route path="tills" element={<Tills />} />
               <Route path="debtors/*" element={<Debtors />} />
               <Route path="design" element={<StoreDesigner />} />
+              <Route path="social" element={<Social />} />
             </Routes>
           </Suspense>
         </main>

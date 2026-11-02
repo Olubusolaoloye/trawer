@@ -34,6 +34,8 @@ const schema = z.object({
   // How many reverse proxies (load balancer, CDN) sit in front of the API. 0 = clients connect directly,
   // so X-Forwarded-For is ignored (anyone can type it). N = use the address the N-th proxy saw.
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+  // Instagram/Facebook posting: 'meta' (Graph API, needs META_APP_ID + META_APP_SECRET) or 'console' (sandbox).
+  SOCIAL_PROVIDER: z.enum(['meta', 'console']).default('console'),
   SENTRY_DSN: z.string().optional(),
 });
 
@@ -47,6 +49,7 @@ function load() {
     if (env.AUTH_MODE === 'dev') throw new Error('AUTH_MODE=dev is not allowed in production');
     if (env.PAYMENT_PROVIDER === 'fake') throw new Error('PAYMENT_PROVIDER=fake is not allowed in production');
     if (env.CRON_SECRET.startsWith('dev-')) throw new Error('Set CRON_SECRET in production');
+    if (env.SOCIAL_PROVIDER === 'meta' && (!env.META_APP_ID || !env.META_APP_SECRET)) throw new Error('SOCIAL_PROVIDER=meta needs META_APP_ID and META_APP_SECRET');
   }
   return env;
 }

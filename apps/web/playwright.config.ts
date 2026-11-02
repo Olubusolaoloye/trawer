@@ -23,6 +23,7 @@ export default defineConfig({
       PAYMENT_PROVIDER: 'fake',
       NODE_ENV: 'development',
       ROOT_DOMAIN: 'localhost',
+      APP_URL: `http://localhost:${PORT}`,
     },
   },
 });

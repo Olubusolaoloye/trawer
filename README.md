@@ -33,6 +33,17 @@ configure phone auth with Termii, and use Paystack test keys.
 3. On an order: Mark packed → pick a rider → Send out for delivery. The rider's app shows it; they tap Start, then Delivered (camera proof) or Couldn't deliver (reason). Buyers get WhatsApp updates at every step and can follow the public tracking link.
 4. Behind a load balancer/CDN, set `TRUST_PROXY_HOPS` to the number of proxies so rate limits see the real client IP.
 
+## Instagram & Facebook posting
+
+Sandbox by default (`SOCIAL_PROVIDER=console`): connecting and posting work end to end, nothing leaves the server.
+
+For real posting:
+1. In your Meta app add **Facebook Login for Business** and the permissions `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `business_management`, `instagram_basic`, `instagram_content_publish` (needs App Review for other businesses).
+2. Add `${APP_URL}/api/social/callback` as a valid OAuth redirect URI.
+3. Set `SOCIAL_PROVIDER=meta`, `META_APP_ID`, `META_APP_SECRET`.
+4. Schedule `POST /api/cron/social` every minute (with `Authorization: Bearer $CRON_SECRET`).
+5. The shop's Instagram must be a Business/Creator account linked to a Facebook Page. Instagram fetches photos from `${APP_URL}/api/social/image/…jpg`, so `APP_URL` must be public.
+
 ## WhatsApp (Meta Cloud API)
 
 1. In Meta Business Manager create a WhatsApp Business app; note the **phone number ID** and a

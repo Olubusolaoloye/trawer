@@ -15,6 +15,7 @@ import { cronRoutes } from './routes/cron';
 import { trackRoutes } from './routes/track';
 import { docRoutes } from './routes/docs';
 import { dashboardRoutes } from './routes/dashboard';
+import { socialBizRoutes, socialPublicRoutes } from './routes/social';
 import { devRoutes } from './routes/dev';
 import { env } from './env';
 import { logError } from './log';
@@ -112,6 +113,8 @@ export function createApp() {
   app.route('/api/track', trackRoutes);
   app.route('/api/docs', docRoutes);
   app.route('/api/pos', posRoutes);
+  app.route('/api/social', socialPublicRoutes);
+  app.route('/api/biz/:bid/social', socialBizRoutes);
   app.route('/api/biz', dashboardRoutes);
   if (env.NODE_ENV !== 'production') app.route('/api/dev', devRoutes);
 
