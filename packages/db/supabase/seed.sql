@@ -132,6 +132,9 @@ begin
     elsif i = 10 then
       perform app.apply_payment(v_biz, v_order, null, (o ->> 'total_kobo')::bigint / 2, 'transfer');
     end if;
+    -- payments and confirmations happen on the order's own day (so reports show a real history)
+    update public.payments set received_at = (select created_at from public.orders where id = v_order) + interval '35 minutes' where order_id = v_order;
+    update public.orders set confirmed_at = created_at + interval '40 minutes' where id = v_order and confirmed_at is not null;
   end loop;
 
 end $seed$;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowRight, Settings, Palette } from 'lucide-react';
+import { ArrowRight, ChartColumn, HandCoins, Megaphone, MonitorSmartphone, Palette, Settings } from 'lucide-react';
 import { useApi } from '../lib/use-api';
 import { cx, formatNaira } from '../lib/format';
 import { Badge, Spinner, StatusPill } from '../components/ui';
@@ -19,8 +19,9 @@ interface TodayData {
 
 const short = (k: number) => (k >= 100_000_000 ? `₦${(k / 100_000_000).toFixed(2)}m` : k >= 100_000 ? `₦${Math.round(k / 100_000)}k` : formatNaira(k));
 const CH: Record<string, { label: string; colour: string }> = {
-  pos: { label: 'Till', colour: 'bg-green' }, whatsapp: { label: 'WhatsApp', colour: 'bg-indigo' }, web: { label: 'Web', colour: 'bg-[#6B74C9]' },
-  instagram: { label: 'Instagram', colour: 'bg-gold' }, facebook: { label: 'Facebook', colour: 'bg-gold' },
+  // Same validated channel colours as Reports (every channel its own hue, always with a label).
+  web: { label: 'Web', colour: 'bg-[#2a78d6]' }, pos: { label: 'Till', colour: 'bg-[#eb6834]' }, whatsapp: { label: 'WhatsApp', colour: 'bg-[#1baf7a]' },
+  instagram: { label: 'Instagram', colour: 'bg-[#e87ba4]' }, facebook: { label: 'Facebook', colour: 'bg-[#6250d6]' },
 };
 
 function greeting(): MessageKey {
@@ -92,6 +93,24 @@ export default function Today() {
         <Link to="debtors" className="lift space-y-1.5 rounded-2xl bg-red-50 p-4"><p className="text-sm font-bold text-red-ink">{t('dash.owedToYou')}</p><p className="num font-display text-[28px] font-extrabold">{short(data.owed_kobo)}</p>
           <p className="text-[13px] text-body">{data.late_kobo > 0 ? t('dash.lateAmount', { amount: short(data.late_kobo) }) : t('dash.nothingLate')}</p></Link>
       </section>
+
+      {/* Phones: the bottom bar has room for four tabs; everything else is one tap away here. */}
+      <nav aria-label={t('dash.more')} className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 lg:hidden">
+        {[
+          b.can('reports.view') && { to: 'reports', label: t('dash.reports'), icon: ChartColumn },
+          { to: 'debtors', label: t('debt.title'), icon: HandCoins },
+          b.can('social.manage') && { to: 'social', label: t('dash.social'), icon: Megaphone },
+          { to: 'tills', label: t('dash.tills'), icon: MonitorSmartphone },
+          b.can('settings.manage') && { to: 'design', label: t('dash.design'), icon: Palette },
+        ].filter(Boolean).map((x) => {
+          const l = x as { to: string; label: string; icon: typeof Palette };
+          return (
+            <Link key={l.to} to={l.to} className="press flex min-h-12 shrink-0 items-center gap-2 rounded-xl border border-line/70 bg-white px-3.5 text-sm font-bold shadow-card">
+              <l.icon className="size-5 text-green" aria-hidden />{l.label}
+            </Link>
+          );
+        })}
+      </nav>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
         <section className="space-y-3">

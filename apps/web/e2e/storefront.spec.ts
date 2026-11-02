@@ -281,3 +281,32 @@ test('social: owner connects Instagram + Facebook (sandbox), posts a product, an
   await expect(page.getByRole('link', { name: 'View' })).toHaveCount(2);
   await db.end();
 });
+
+test('reports: owner sees sales and profit, adds an expense, and downloads a CSV', async ({ page }) => {
+  await page.goto('/dashboard');
+  await signIn(page, '+2348030000001');
+  await page.getByText("You've taken today").waitFor();
+  // phones reach Reports from the Today shortcuts
+  await page.getByRole('navigation', { name: 'More' }).getByRole('link', { name: 'Reports' }).click();
+  await expect(page.getByRole('heading', { name: 'Reports', level: 1 })).toBeVisible();
+  await page.getByRole('button', { name: '30 days' }).click();
+  const headline = page.getByRole('region', { name: 'Headline numbers' });
+  await expect(headline.getByText('Gross profit', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sales by channel' })).toBeVisible();
+  await expect(page.getByRole('img', { name: /Bar chart of sales and gross profit/ })).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Expenses' }).click();
+  const before = await headline.getByText(/^₦/).nth(2).textContent();
+  await page.getByLabel('Amount (₦)').fill('2500');
+  await page.getByLabel('Category').selectOption('transport');
+  await page.getByLabel('Note').fill('Keke to Balogun market');
+  await page.getByRole('button', { name: 'Add expense' }).click();
+  await expect(page.getByRole('cell', { name: /Keke to Balogun market/ })).toBeVisible();
+  await expect.poll(async () => headline.getByText(/^₦/).nth(2).textContent()).not.toBe(before);
+
+  const download = page.waitForEvent('download');
+  await page.getByRole('tab', { name: 'Best sellers' }).click();
+  await page.getByRole('link', { name: 'Download CSV' }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/^trawer-products-\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$/);
+});

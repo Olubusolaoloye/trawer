@@ -138,5 +138,12 @@
   "social.schedule": "Plan the post",
   "social.connect": "Connect with Facebook",
   "social.postProduct": "Post am for Instagram/Facebook",
-  "dash.social": "Social posts"
+  "dash.social": "Social posts",
+  "rep.title": "Reports",
+  "rep.sales": "Wetin you sell",
+  "rep.gross": "Gain",
+  "rep.net": "Gain after expenses",
+  "rep.expenses": "Wetin you spend",
+  "dash.reports": "Reports",
+  "rep.addExpense": "Add wetin you spend"
 }
