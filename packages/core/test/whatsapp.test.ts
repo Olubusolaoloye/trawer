@@ -159,5 +159,8 @@ describe('messaging helpers', () => {
     const params = { order_number: 1042, received_kobo: 30_650_000, shop: 'Balogun Fabrics', slug: 'balogun', tracking_token: 'x7' };
     expect(notificationText('payment_received', params, 'https://trawer.shop/t/x7')).toBe('₦306,500 received for order #1042. Thank you! Balogun Fabrics is getting it ready. Track it: https://trawer.shop/t/x7');
     expect(TEMPLATES.payment_received.vars(params, 'u')).toEqual(['₦306,500', '1042', 'Balogun Fabrics', 'u']);
+    expect(notificationText('dispatched', { ...params, rider: 'Musa', collect_kobo: 4_500_000 }, 'https://trawer.shop/t/x7'))
+      .toBe('Order #1042 from Balogun Fabrics is on the way with Musa! Please have ₦45,000 ready to pay on delivery. Track it: https://trawer.shop/t/x7');
+    expect(notificationText('dispatched', params, 'u')).toBe('Order #1042 from Balogun Fabrics is on the way! Track it: u');
   });
 });

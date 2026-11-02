@@ -3,9 +3,13 @@ import { createApp } from '../src/app';
 
 export const app = createApp();
 
+let ipSeq = (Date.now() % 50_000) * 7;
+
 /** Tiny cookie-jar client around app.request(). */
 export class Client {
   private jar = new Map<string, string>();
+  // Each simulated device has its own address, like real buyers/staff (the OTP limiter is per IP).
+  private readonly ip = `10.${(ipSeq >> 16) & 255}.${(ipSeq >> 8) & 255}.${ipSeq++ & 255}`;
   constructor(private readonly host = 'app.trawer.test') {}
 
   async req<T = any>(method: string, path: string, json?: unknown, headers: Record<string, string> = {}): Promise<{ status: number; body: T; headers: Headers }> {
@@ -13,6 +17,7 @@ export class Client {
       method,
       headers: {
         host: this.host,
+        'x-forwarded-for': this.ip,
         ...(json !== undefined ? { 'content-type': 'application/json' } : {}),
         ...(method !== 'GET' ? { 'x-trawer': '1' } : {}),
         cookie: [...this.jar].map(([k, v]) => `${k}=${v}`).join('; '),

@@ -63,3 +63,16 @@ export async function readLocalImage(bucket: Bucket, path: string, width: number
 export function isPublicBucket(b: string): b is Bucket {
   return (PUBLIC_BUCKETS as string[]).includes(b);
 }
+
+/**
+ * Private images (proof-of-delivery): only ever returned by routes that have already checked the
+ * caller may see the record. Never exposed under /media.
+ */
+export async function readPrivateImage(bucket: Exclude<Bucket, 'products'>, path: string, width: number): Promise<Buffer | null> {
+  if (!/^[A-Za-z0-9/_-]+\.webp$/.test(path)) return null;
+  if (env.STORAGE_DRIVER !== 'supabase') return readLocalImage(bucket, path, width);
+  const res = await fetch(`${env.SUPABASE_URL}/storage/v1/object/${bucket}/${path}`, { headers: { Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } });
+  if (!res.ok) return null;
+  const src = Buffer.from(await res.arrayBuffer());
+  return sharp(src).resize({ width: Math.min(width, 1600), withoutEnlargement: true }).webp({ quality: 72 }).toBuffer();
+}

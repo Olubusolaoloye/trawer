@@ -31,6 +31,9 @@ const schema = z.object({
   STT_API_KEY: z.string().optional(),
   STT_MODEL: z.string().default('whisper-1'),
   CRON_SECRET: z.string().min(16).default('dev-cron-secret-change-me'),
+  // How many reverse proxies (load balancer, CDN) sit in front of the API. 0 = clients connect directly,
+  // so X-Forwarded-For is ignored (anyone can type it). N = use the address the N-th proxy saw.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
   SENTRY_DSN: z.string().optional(),
 });
 

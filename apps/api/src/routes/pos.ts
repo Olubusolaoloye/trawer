@@ -9,7 +9,8 @@ import type { PosVariant, SyncResult } from '@trawer/core/pos';
 import { loadPriceBook } from '@trawer/db';
 import { dbErrorCode, many, one, withUser } from '../db';
 import { ApiError, body, query, requireUser, type AppEnv } from '../http';
-import { imageUrl } from '../storage';
+import { imageUrl, putImage } from '../storage';
+import { fulfilmentArgs, fulfilmentInput, setFulfilmentSql } from '../deliveries';
 
 export const posRoutes = new Hono<AppEnv>();
 
@@ -141,4 +142,37 @@ posRoutes.post('/cash-up', async (c) => {
   const r = await withUser(claims, (tx) => one(tx, `select public.submit_cash_up($1, $2::date, $3, $4, $5) r`,
     [input.business_id, input.day, input.counted_cash_kobo, input.device_id ?? null, input.note ?? null]));
   return c.json({ cash_up: r!.r });
+});
+
+// ------------------------------------------------------------------------------------------
+// Rider screen: run sheet, proof photo, one-tap status (idempotent on client_id for offline use)
+// ------------------------------------------------------------------------------------------
+posRoutes.get('/deliveries', async (c) => {
+  const claims = requireUser(c);
+  const { business_id } = query(c, z.object({ business_id: uuid }));
+  const rows = await withUser(claims, (tx) => one<{ r: unknown[] }>(tx, `select public.my_deliveries($1) r`, [business_id]));
+  return c.json({ deliveries: rows?.r ?? [] });
+});
+
+posRoutes.post('/deliveries/:oid/proof', async (c) => {
+  const claims = requireUser(c);
+  const oid = uuid.parse(c.req.param('oid'));
+  // Only the assigned rider (or delivery managers) may attach a photo to this delivery.
+  const biz = await withUser(claims, (tx) => one<{ business_id: string }>(tx, `select business_id from deliveries where order_id = $1`, [oid]));
+  if (!biz) throw new ApiError(404, 'not_found');
+  const form = await c.req.formData().catch(() => null);
+  const file = form?.get('file');
+  if (!(file instanceof File)) throw new ApiError(422, 'file_required');
+  if (file.size > 12 * 1024 * 1024) throw new ApiError(422, 'file_too_large');
+  if (!/^image\/(jpeg|png|webp|heic|heif)$/.test(file.type)) throw new ApiError(422, 'unsupported_image');
+  const out = await putImage('proofs', biz.business_id, Buffer.from(await file.arrayBuffer()));
+  return c.json({ path: out.path }, 201);
+});
+
+posRoutes.post('/deliveries/:oid/status', async (c) => {
+  const claims = requireUser(c);
+  const oid = uuid.parse(c.req.param('oid'));
+  const input = await body(c, fulfilmentInput);
+  const r = await withUser(claims, (tx) => one<{ r: unknown }>(tx, setFulfilmentSql, fulfilmentArgs(oid, input)));
+  return c.json(r!.r);
 });

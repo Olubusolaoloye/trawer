@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
-import { Calculator, Settings as SettingsIcon, ShoppingBag } from 'lucide-react-native';
+import { Bike, Calculator, Settings as SettingsIcon, ShoppingBag } from 'lucide-react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -13,10 +13,11 @@ import { SetupScreen } from './screens/SetupScreen';
 import { SellScreen } from './screens/SellScreen';
 import { CashUpScreen } from './screens/CashUpScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { DeliveriesScreen } from './screens/DeliveriesScreen';
 import { colors, fonts, Glow, Press, SyncPill, type Icon } from './components/ui';
 
 type Phase = 'loading' | 'signin' | 'setup' | 'ready';
-type Tab = 'sell' | 'cashup' | 'settings';
+type Tab = 'sell' | 'deliveries' | 'cashup' | 'settings';
 
 export default function App() {
   const [phase, setPhase] = useState<Phase>('loading');
@@ -41,13 +42,21 @@ export default function App() {
 
 const TABS: { id: Tab; label: string; icon: Icon }[] = [
   { id: 'sell', label: 'Sell', icon: ShoppingBag },
+  { id: 'deliveries', label: 'Deliveries', icon: Bike },
   { id: 'cashup', label: 'Cash-up', icon: Calculator },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ];
+/** Riders only deliver; cashiers only sell; owners, managers and store keepers do both. */
+function tabsFor(role: string): Tab[] {
+  if (role === 'rider') return ['deliveries', 'settings'];
+  if (role === 'cashier') return ['sell', 'cashup', 'settings'];
+  return ['sell', 'deliveries', 'cashup', 'settings'];
+}
 
 function Till({ binding, onSignOut }: { binding: DeviceBinding; onSignOut: () => void }) {
   const engine = useMemo(() => getEngine(binding), [binding]);
-  const [tab, setTab] = useState<Tab>('sell');
+  const tabs = tabsFor(binding.role);
+  const [tab, setTab] = useState<Tab>(tabs[0]!);
   const [status, setStatus] = useState<SyncStatus | null>(null);
   useEffect(() => startSyncLoop(engine, setStatus), [engine]);
   const shop = { name: binding.businessName };
@@ -72,19 +81,20 @@ function Till({ binding, onSignOut }: { binding: DeviceBinding; onSignOut: () =>
       </View>
       <View style={{ flex: 1, backgroundColor: colors.paper, borderTopLeftRadius: 22, borderTopRightRadius: 22, overflow: 'hidden', marginTop: -8 }}>
         {tab === 'sell' && <SellScreen engine={engine} binding={binding} shop={shop} />}
+        {tab === 'deliveries' && <DeliveriesScreen binding={binding} />}
         {tab === 'cashup' && <CashUpScreen engine={engine} binding={binding} pending={status?.pending ?? 0} />}
         {tab === 'settings' && <SettingsScreen binding={binding} onSignOut={onSignOut} />}
       </View>
-      <TabBar tab={tab} onChange={setTab} />
+      <TabBar tabs={tabs} tab={tab} onChange={setTab} />
     </SafeAreaView>
   );
 }
 
-function TabBar({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
+function TabBar({ tabs, tab, onChange }: { tabs: Tab[]; tab: Tab; onChange: (t: Tab) => void }) {
   const insets = useSafeAreaInsets();
   return (
     <View accessibilityRole="tablist" style={{ flexDirection: 'row', gap: 6, paddingHorizontal: Math.max(10, (useWindowDimensions().width - 640) / 2), paddingTop: 8, paddingBottom: Math.max(insets.bottom, 10), backgroundColor: colors.surface, borderTopWidth: 1, borderColor: 'rgba(228,222,210,0.7)' }}>
-      {TABS.map(({ id, label, icon: I }) => {
+      {TABS.filter((x) => tabs.includes(x.id)).map(({ id, label, icon: I }) => {
         const on = tab === id;
         return (
           <Press key={id} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: on }} onPress={() => onChange(id)} scaleTo={0.94}

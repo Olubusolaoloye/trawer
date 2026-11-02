@@ -1,3 +1,4 @@
+import { getConnInfo } from '@hono/node-server/conninfo';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
@@ -61,6 +62,21 @@ export function clearSession(c: Ctx): void {
   deleteCookie(c, REFRESH, { path: '/', domain: cookieDomain() });
 }
 
+/**
+ * The caller's IP for rate limiting. X-Forwarded-For is client-controlled except for the entries our
+ * own proxies append, so we only read it when TRUST_PROXY_HOPS says how many of those there are,
+ * and then take the entry the outermost trusted proxy wrote (never the left-most, spoofable one).
+ */
 export function clientIp(c: Ctx): string {
-  return c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || c.req.header('x-real-ip') || 'unknown';
+  const hops = env.TRUST_PROXY_HOPS;
+  if (hops > 0) {
+    const chain = (c.req.header('x-forwarded-for') ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+    const ip = chain[chain.length - hops];
+    if (ip) return ip;
+  }
+  try {
+    return getConnInfo(c).remote.address ?? 'unknown';
+  } catch {
+    return 'unknown'; // in-process requests (tests) have no socket
+  }
 }

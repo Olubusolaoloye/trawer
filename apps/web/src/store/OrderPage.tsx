@@ -14,6 +14,7 @@ interface OrderView {
   virtual_account: { account_number: string; account_name: string; bank_name: string } | null;
   payments: { method: string; amount_kobo: number; received_at: string }[];
   business: { name: string; slug: string } | null;
+  delivery?: { delivery: { rider_name: string | null; failure: string | null } | null; events: { status: string; at: string }[] } | null;
   sandbox?: boolean;
 }
 
@@ -129,7 +130,11 @@ export function OrderPage() {
   }
 
   const timeline = ['confirmed', 'packed', 'dispatched', 'delivered'];
-  const step = timeline.indexOf(o.fulfilment_status);
+  const failed = o.fulfilment_status === 'failed';
+  const step = timeline.indexOf(failed || o.fulfilment_status === 'returned' ? 'dispatched' : o.fulfilment_status);
+  const when: Record<string, string> = { confirmed: o.confirmed_at ?? '' };
+  for (const e of data.delivery?.events ?? []) when[e.status] = e.at;
+  const riderName = data.delivery?.delivery?.rider_name;
   return (
     <div className="mx-auto flex min-h-dvh max-w-xl flex-col">
       {paidInFull ? (
@@ -153,6 +158,7 @@ export function OrderPage() {
         {(o.status === 'confirmed' || o.status === 'completed') && o.delivery_method === 'delivery' && (
           <section>
             <h2 className="mb-3 font-display text-[22px] font-extrabold">{t('order.deliveryTo', { place: o.delivery_address?.city ?? '' })}</h2>
+            {failed && <p role="status" className="mb-3 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-ink">{t('track.failed', { reason: t(`deliv.fail.${data.delivery?.delivery?.failure ?? 'other'}` as MessageKey) })}</p>}
             <ol>
               {timeline.map((s, i) => {
                 const done = i <= step;
@@ -167,6 +173,8 @@ export function OrderPage() {
                     </div>
                     <div className="pb-5">
                       <b className={cx(current && 'text-indigo', !done && !current && 'text-muted')}>{t(`order.fulfil.${s}` as MessageKey)}</b>
+                      {done && when[s] && <p className="text-sm text-muted">{formatDate(when[s]!, true)}</p>}
+                      {s === 'dispatched' && i === step && !failed && riderName && <p className="text-sm font-semibold text-indigo">{t('track.onTheWayWith', { name: riderName })}</p>}
                     </div>
                   </li>
                 );

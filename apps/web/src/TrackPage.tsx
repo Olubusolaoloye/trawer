@@ -9,6 +9,9 @@ import { t, type MessageKey } from './i18n';
 interface Track {
   order: { order_number: number; status: string; payment_status: string; fulfilment_status: string; delivery_method: string; total_kobo: number; balance_kobo: number; created_at: string; confirmed_at: string | null; shop: string; slug: string; brand_colour: string };
   items: { name: string; variant_label: string | null; unit_qty: number; unit: string }[];
+  events?: { status: string; at: string }[];
+  rider_name?: string | null;
+  failure?: string | null;
 }
 
 /** Public order tracking (link sent on WhatsApp). No sign-in, no personal details. */
@@ -26,7 +29,12 @@ export default function TrackPage() {
   if (!data) return <Spinner />;
   const o = data.order;
   const steps = o.delivery_method === 'delivery' ? ['confirmed', 'packed', 'dispatched', 'delivered'] : ['confirmed', 'packed', 'collected'];
-  const at = o.status === 'pending' ? -1 : Math.max(steps.indexOf(o.fulfilment_status), 0);
+  const failed = o.fulfilment_status === 'failed';
+  const shown = failed ? 'dispatched' : o.fulfilment_status === 'returned' ? 'dispatched' : o.fulfilment_status;
+  const at = o.status === 'pending' ? -1 : Math.max(steps.indexOf(shown), 0);
+  // Latest time each step was reached (a retried delivery shows its latest dispatch).
+  const when: Record<string, string> = { confirmed: o.confirmed_at ?? '' };
+  for (const e of data.events ?? []) when[e.status] = e.at;
   return (
     <main className="mx-auto min-h-dvh max-w-md bg-paper">
       <header className="px-5 pb-6 pt-6 text-white" style={{ background: o.brand_colour }}>
@@ -37,6 +45,7 @@ export default function TrackPage() {
       <div className="space-y-5 px-5 py-6">
         {o.status === 'pending' && <p className="rounded-2xl bg-gold-50 p-4 font-semibold text-gold-ink">{t('track.awaitingPayment', { amount: formatNaira(o.balance_kobo) })}</p>}
         {(o.status === 'cancelled' || o.status === 'expired') && <p className="rounded-2xl bg-line-soft p-4 font-semibold">{t(`order.status.${o.status}` as MessageKey)}</p>}
+        {failed && <p role="status" className="rounded-2xl bg-red-50 p-4 font-semibold text-red-ink">{t('track.failed', { reason: t(`deliv.fail.${data.failure ?? 'other'}` as MessageKey) })}</p>}
         <ol aria-label={t('track.progress')}>
           {steps.map((s, i) => (
             <li key={s} className="flex gap-3.5">
@@ -46,7 +55,11 @@ export default function TrackPage() {
                 </span>
                 {i < steps.length - 1 && <span className={cx('min-h-7 w-[3px] flex-1', i < at ? 'bg-green' : 'bg-line')} />}
               </div>
-              <b className={cx('pb-5', i > at && 'text-muted', i === at + 1 && 'text-indigo')}>{t(`order.fulfil.${s}` as MessageKey)}</b>
+              <div className="pb-5">
+                <b className={cx(i > at && 'text-muted', i === at + 1 && 'text-indigo')}>{t(`order.fulfil.${s}` as MessageKey)}</b>
+                {i <= at && when[s] && <p className="text-sm text-muted">{formatDate(when[s]!, true)}</p>}
+                {s === 'dispatched' && i === at && !failed && data.rider_name && <p className="text-sm font-semibold text-indigo">{t('track.onTheWayWith', { name: data.rider_name })}</p>}
+              </div>
             </li>
           ))}
         </ol>

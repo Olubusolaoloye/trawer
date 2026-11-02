@@ -57,6 +57,11 @@ export async function authed<T>(path: string, init: { method?: 'GET' | 'POST'; b
   return json;
 }
 
+/** Raw authenticated request (callers inspect the status themselves). */
+export async function authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(`${API_URL}${path}`, { ...init, headers: { Authorization: `Bearer ${await accessToken()}`, 'X-Trawer': '1', ...(init.headers ?? {}) } });
+}
+
 export async function getBinding(): Promise<DeviceBinding | null> {
   const raw = await SecureStore.getItemAsync(DEVICE);
   return raw ? (JSON.parse(raw) as DeviceBinding) : null;

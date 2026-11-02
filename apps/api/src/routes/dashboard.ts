@@ -8,7 +8,8 @@ import { designView } from '../storefront';
 import { storefrontSchema } from '@trawer/core/storefront';
 import { ApiError, body, query, requireUser, type AppEnv, type Ctx } from '../http';
 import { createProduct } from '../products';
-import { imageUrl, putImage } from '../storage';
+import { imageUrl, putImage, readPrivateImage } from '../storage';
+import { fulfilmentArgs, fulfilmentInput, setFulfilmentSql } from '../deliveries';
 
 export const dashboardRoutes = new Hono<AppEnv>();
 
@@ -181,6 +182,44 @@ dashboardRoutes.patch('/:bid/staff/:sid', async (c) => {
 });
 
 // ------------------------------------------------------------------------------------------
+// Delivery tracking
+// ------------------------------------------------------------------------------------------
+dashboardRoutes.post('/:bid/orders/:oid/fulfilment', async (c) => {
+  const input = await body(c, fulfilmentInput);
+  return asStaff(c, async (tx) => c.json((await one(tx, setFulfilmentSql, fulfilmentArgs(c.req.param('oid'), input)))!.r));
+});
+
+dashboardRoutes.post('/:bid/orders/:oid/rider', async (c) => {
+  const input = await body(c, z.object({ staff_id: uuid.nullable() }));
+  return asStaff(c, async (tx) => { await tx.query(`select public.assign_rider($1, $2)`, [c.req.param('oid'), input.staff_id]); return c.json({ ok: true }); });
+});
+
+dashboardRoutes.get('/:bid/orders/:oid/delivery', (c) => asStaff(c, async (tx, b) => {
+  const r = (await one(tx, `select public.order_delivery($1) r`, [c.req.param('oid')]))?.r;
+  if (!r) throw new ApiError(404, 'not_found');
+  const d = r.delivery;
+  if (d) { d.proof_url = d.has_proof ? `/api/biz/${b}/deliveries/${d.id}/proof` : null; delete d.proof_path; }
+  return c.json(r);
+}));
+
+/** Staff who can take deliveries (riders first), with how many they're carrying now. */
+dashboardRoutes.get('/:bid/riders', (c) => asStaff(c, async (tx, b) => c.json({ riders: await many(tx, `
+  select sm.id, coalesce(nullif(sm.display_name, ''), sm.phone) name, sm.role,
+         (select count(*)::int from deliveries d join orders o on o.id = d.order_id where d.rider_id = sm.id and o.fulfilment_status in ('packed', 'dispatched', 'failed')) carrying
+  from staff_members sm
+  where sm.business_id = $1 and sm.status = 'active'
+    and exists (select 1 from roles_permissions rp where rp.role = sm.role and rp.permission = 'deliveries.update')
+  order by (sm.role = 'rider') desc, name`, [b]) })));
+
+/** Proof-of-delivery photo: private, served only to staff who can see the delivery (RLS). */
+dashboardRoutes.get('/:bid/deliveries/:did/proof', async (c) => {
+  const path = await asStaff(c, async (tx, b) => (await one<{ proof_path: string | null }>(tx, `select proof_path from deliveries where id = $1 and business_id = $2`, [c.req.param('did'), b]))?.proof_path);
+  const img = path ? await readPrivateImage('proofs', path, Number(c.req.query('w') ?? 960)) : null;
+  if (!img) throw new ApiError(404, 'not_found');
+  return c.body(new Uint8Array(img), 200, { 'Content-Type': 'image/webp', 'Cache-Control': 'private, max-age=3600', 'X-Robots-Tag': 'noindex' });
+});
+
+// ------------------------------------------------------------------------------------------
 // Storefront design
 // ------------------------------------------------------------------------------------------
 dashboardRoutes.get('/:bid/storefront', (c) => asStaff(c, async (tx, b) => {
@@ -208,8 +247,9 @@ dashboardRoutes.post('/:bid/uploads', (c) => asStaff(c, async (_tx, b) => {
   if (!(file instanceof File)) throw new ApiError(422, 'file_required');
   if (file.size > 12 * 1024 * 1024) throw new ApiError(422, 'file_too_large');
   if (!/^image\/(jpeg|png|webp|heic|heif|avif)$/.test(file.type)) throw new ApiError(422, 'unsupported_image');
-  const out = await putImage('products', b, Buffer.from(await file.arrayBuffer()));
-  return c.json({ path: out.path, url: imageUrl(out.path, 640) }, 201);
+  const proof = c.req.query('kind') === 'proof';
+  const out = await putImage(proof ? 'proofs' : 'products', b, Buffer.from(await file.arrayBuffer()));
+  return c.json({ path: out.path, url: proof ? null : imageUrl(out.path, 640) }, 201);
 }));
 
 // ------------------------------------------------------------------------------------------

@@ -188,3 +188,50 @@ test('owner customises the store: theme + announcement show in the live preview,
   await c.query(`update businesses set storefront = '{}', storefront_updated_at = null where slug = 'balogun'`);
   await c.end();
 });
+
+test('delivery: owner packs, sends out and confirms with a proof photo; the public tracking page shows the timeline', async ({ page }) => {
+  const pg = await import('pg');
+  const c = new pg.default.Client({ connectionString: process.env.E2E_DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/trawer_dev' });
+  await c.connect();
+  await c.query('begin');
+  await c.query(`select set_config('request.jwt.claims', '{"role":"service_role"}', true)`);
+  await c.query('set local role service_role');
+  const { rows: [pick] } = await c.query(`
+    select b.id business_id, cu.id customer_id, v.id variant_id, pu.unit_id
+    from businesses b join customers cu on cu.business_id = b.id and cu.phone = '+2348090000002'
+    join product_variants v on v.business_id = b.id and v.is_active
+    join stock_levels sl on sl.variant_id = v.id and sl.available >= 2
+    join product_units pu on pu.product_id = v.product_id and pu.is_base
+    where b.slug = 'balogun' limit 1`);
+  const { rows: [placed] } = await c.query(`select public.place_order($1::jsonb) o`, [JSON.stringify({
+    business_id: pick.business_id, channel: 'web', customer_id: pick.customer_id, items: [{ variant_id: pick.variant_id, unit_id: pick.unit_id, qty: 1 }],
+    delivery_method: 'delivery', delivery_address: { line1: '5 Aba Road', city: 'Port Harcourt', state: 'Rivers' },
+  })]);
+  await c.query('commit');
+  await c.query(`select app.apply_payment($1, $2, null, $3, 'transfer')`, [pick.business_id, placed.o.id, placed.o.total_kobo]);
+  const { rows: [{ tracking_token }] } = await c.query(`select tracking_token from orders where id = $1`, [placed.o.id]);
+  await c.end();
+
+  await page.goto('/dashboard');
+  await signIn(page, '+2348030000001');
+  await page.getByText("You've taken today").waitFor();
+  await page.goto(`${page.url().replace(/\/$/, '')}/orders/${placed.o.id}`);
+  await page.getByRole('button', { name: 'Mark packed' }).click();
+  await page.getByRole('button', { name: 'Send out for delivery' }).click();
+  await page.getByRole('button', { name: 'Mark delivered' }).click();
+  // 1x1 PNG
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  await page.getByLabel('Add photo').setInputFiles({ name: 'proof.png', mimeType: 'image/png', buffer: png });
+  await expect(page.getByText('Change photo')).toBeVisible();
+  await page.getByLabel('Received by (optional)').fill('Mrs Eze');
+  await page.getByRole('button', { name: 'Confirm delivered' }).click();
+  await expect(page.getByRole('img', { name: 'Proof of delivery' })).toBeVisible();
+  await expect(page.getByText('Received by Mrs Eze')).toBeVisible();
+
+  await page.context().clearCookies();
+  await page.goto(`/t/${tracking_token}`);
+  const progress = page.getByRole('list', { name: 'Order progress' });
+  await expect(progress.getByText('Delivered')).toBeVisible();
+  await expect(progress.locator('p.text-muted')).toHaveCount(4); // a time under every step
+  await expect(page.getByRole('img')).toHaveCount(0);           // no proof photo in public
+});

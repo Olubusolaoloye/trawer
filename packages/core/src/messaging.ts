@@ -147,6 +147,7 @@ export type NotificationKind = 'order_placed' | 'payment_received' | 'order_conf
 export interface NotificationParams {
   order_number?: number; total_kobo?: number; balance_kobo?: number; received_kobo?: number; amount_paid_kobo?: number;
   shop: string; slug: string; tracking_token?: string; due_date?: string; account_number?: string; bank?: string;
+  rider?: string; collect_kobo?: number; attempt?: number;
 }
 
 /**
@@ -177,7 +178,7 @@ export function notificationText(kind: NotificationKind, p: NotificationParams, 
     case 'payment_received': return `${formatNaira(p.received_kobo ?? 0)} received for order #${n}. Thank you! ${p.shop} is getting it ready. Track it: ${trackUrl}`;
     case 'order_confirmed': return `Order #${n} at ${p.shop} is confirmed. Balance to pay: ${formatNaira(p.balance_kobo ?? 0)}. Track it: ${trackUrl}`;
     case 'packed': return `Order #${n} from ${p.shop} is packed and ready. Track it: ${trackUrl}`;
-    case 'dispatched': return `Order #${n} from ${p.shop} is on the way! Track it: ${trackUrl}`;
+    case 'dispatched': return `Order #${n} from ${p.shop} is on the way${p.rider ? ` with ${p.rider}` : ''}!${p.collect_kobo ? ` Please have ${formatNaira(p.collect_kobo)} ready to pay on delivery.` : ''} Track it: ${trackUrl}`;
     case 'delivered': return `Order #${n} from ${p.shop} has been delivered. Thank you for buying!`;
     case 'delivery_failed': return `We couldn't deliver order #${n} from ${p.shop}. We'll call you to arrange it. Details: ${trackUrl}`;
     case 'debt_reminder': return `Hello from ${p.shop}. A friendly reminder: ${formatNaira(p.balance_kobo ?? 0)} is due on order #${n}. Pay to ${p.account_number} (${p.bank}). Thank you!`;

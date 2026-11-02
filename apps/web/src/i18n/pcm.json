@@ -128,5 +128,10 @@
   "store.seeAll": "See everything",
   "store.fewLeft": "Na only {n} remain",
   "store.chatWhatsApp": "Chat us for WhatsApp",
-  "dash.design": "Design your shop"
+  "dash.design": "Design your shop",
+  "deliv.markPacked": "E don pack",
+  "deliv.dispatch": "Send am go",
+  "deliv.markDelivered": "E don reach",
+  "deliv.markFailed": "E no reach",
+  "track.onTheWayWith": "{name} dey bring your order come"
 }

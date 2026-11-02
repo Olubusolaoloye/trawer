@@ -18,14 +18,15 @@ async function loadOrder(c: Ctx, id: string) {
   return withUser(c.get('claims'), async (tx) => {
     const order = (await one<{ result: any }>(tx, `select public.get_order($1) as result`, [id]))?.result;
     if (!order) return null;
-    const [account, payments, business] = await Promise.all([
+    const [account, payments, business, delivery] = await Promise.all([
       order.customer_id
         ? one(tx, `select account_number, account_name, bank_name from virtual_accounts where customer_id = $1 and status = 'active' limit 1`, [order.customer_id])
         : null,
       many(tx, `select method, amount_kobo, received_at from payments where order_id = $1 order by received_at`, [id]),
       one(tx, `select name, slug::text, brand_colour, phone from businesses where id = $1`, [order.business_id]),
+      one<{ r: unknown }>(tx, `select public.order_delivery($1) r`, [id]),
     ]);
-    return { order, virtual_account: account, payments, business, sandbox: env.PAYMENT_PROVIDER === 'fake' };
+    return { order, virtual_account: account, payments, business, delivery: delivery?.r ?? null, sandbox: env.PAYMENT_PROVIDER === 'fake' };
   });
 }
 

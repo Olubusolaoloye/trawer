@@ -3,7 +3,8 @@ import { HttpPosTransport, PosEngine } from '@trawer/core/pos';
 import { database } from './db';
 import { WatermelonCatalog, WatermelonOutbox, WatermelonState } from './db/repos';
 import { API_URL } from './config';
-import { accessToken, type DeviceBinding } from './session';
+import { accessToken, authedFetch, type DeviceBinding } from './session';
+import { RejectedError, RiderQueue, type RiderAction } from './rider';
 
 export interface SyncStatus { online: boolean; pending: number; lastSyncAt: string | null; syncing: boolean; error: string | null; conflicts: number }
 
@@ -33,6 +34,7 @@ export function startSyncLoop(e: PosEngine, onStatus: (s: SyncStatus) => void): 
     emit({ online, pending: await e.pendingCount() });
     if (!online) return;
     emit({ syncing: true });
+    void riderQueue.flush().catch(() => undefined); // delivery updates saved while offline
     try {
       const r = await e.sync();
       emit({ syncing: false, error: null, lastSyncAt: new Date().toISOString(), pending: await e.pendingCount(), conflicts: status.conflicts + r.conflicts });
@@ -46,3 +48,27 @@ export function startSyncLoop(e: PosEngine, onStatus: (s: SyncStatus) => void): 
   const sub = Network.addNetworkStateListener((s) => { if (s.isConnected) void tick(); });
   return () => { stopped = true; clearInterval(timer); sub.remove(); };
 }
+
+// ------------------------------------------------------------------------------------------
+// Rider outbox (delivery updates + proof photos), persisted in the local database.
+// ------------------------------------------------------------------------------------------
+async function riderCall(path: string, init: RequestInit): Promise<unknown> {
+  const res = await authedFetch(path, init); // throws on no network → stays queued
+  const json = (await res.json().catch(() => ({}))) as { error?: string };
+  if (res.ok) return json;
+  // 4xx (except auth/rate limits) will never succeed on retry: report and move on.
+  if (res.status >= 400 && res.status < 500 && ![401, 408, 429].includes(res.status)) throw new RejectedError(json.error ?? `http_${res.status}`);
+  throw new Error(json.error ?? `http_${res.status}`);
+}
+
+export const riderQueue = new RiderQueue(
+  { load: () => stateRepo.kvGet<RiderAction[]>('rider_outbox', []), save: (items) => stateRepo.kvSet('rider_outbox', items) },
+  {
+    upload: async (orderId, uri) => {
+      const form = new FormData();
+      form.append('file', { uri, name: 'proof.jpg', type: 'image/jpeg' } as unknown as Blob);
+      return ((await riderCall(`/api/pos/deliveries/${orderId}/proof`, { method: 'POST', body: form })) as { path: string }).path;
+    },
+    status: (orderId, body) => riderCall(`/api/pos/deliveries/${orderId}/status`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+  },
+);

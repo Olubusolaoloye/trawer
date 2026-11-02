@@ -8,6 +8,7 @@ import { cx, formatDate, formatNaira } from '../lib/format';
 import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Select, Spinner } from '../components/ui';
 import { t, type MessageKey } from '../i18n';
 import { useBiz } from './context';
+import { DeliveryCard } from './DeliveryCard';
 
 export default function Orders() {
   return (
@@ -160,6 +161,7 @@ function OrderDetail() {
         </Card>
       )}
       {o.customer_id && (o.status === 'pending' || o.status === 'confirmed' || o.status === 'completed') && <CreditCard order={o} customerName={data.customer?.business_name ?? data.customer?.name ?? ''} orderKey={key} />}
+      <DeliveryCard orderId={oid} orderStatus={o.status} />
       {(o.status === 'confirmed' || o.status === 'completed') && <DocumentsCard orderId={oid} orderNumber={o.order_number} />}
       {b.can('orders.manage') && o.status === 'pending' && (
         <><ErrorNote error={cancel.error} /><Button variant="danger" className="w-full" pending={cancel.pending} onClick={() => void cancel.run()}>{t('board.cancelRelease')}</Button></>

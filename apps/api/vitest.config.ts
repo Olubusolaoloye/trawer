@@ -14,6 +14,7 @@ export default defineConfig({
       META_APP_SECRET: 'test-meta-app-secret',
       META_WEBHOOK_VERIFY_TOKEN: 'test-verify-token-123',
       CRON_SECRET: 'test-cron-secret-0123456789',
+      TRUST_PROXY_HOPS: '1',
     },
     testTimeout: 30_000,
     hookTimeout: 60_000,

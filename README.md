@@ -26,6 +26,13 @@ packages/core  Shared domain logic: pricing, units, schemas, providers
 On Supabase: `supabase link`, `supabase db push` (workdir `packages/db`), set `AUTH_MODE=supabase`,
 configure phone auth with Termii, and use Paystack test keys.
 
+## Deliveries
+
+1. Invite riders in Dashboard → Settings → Staff with the **rider** role.
+2. Riders sign in to the Trawer POS app with their phone number; they only see **Deliveries** and **Settings**.
+3. On an order: Mark packed → pick a rider → Send out for delivery. The rider's app shows it; they tap Start, then Delivered (camera proof) or Couldn't deliver (reason). Buyers get WhatsApp updates at every step and can follow the public tracking link.
+4. Behind a load balancer/CDN, set `TRUST_PROXY_HOPS` to the number of proxies so rate limits see the real client IP.
+
 ## WhatsApp (Meta Cloud API)
 
 1. In Meta Business Manager create a WhatsApp Business app; note the **phone number ID** and a

@@ -106,6 +106,10 @@ export class WatermelonState implements StateRepo {
     });
   }
 
+  /** Small app-level values (rider outbox, cached run sheet). */
+  kvGet<T>(key: string, fallback: T) { return this.get<T>(key, fallback); }
+  kvSet(key: string, value: unknown) { return this.set(key, value); }
+
   getPriceBook() { return this.get<PriceBook | null>('price_book', null); }
   setPriceBook(b: PriceBook) { return this.set('price_book', b); }
   getAllocations() { return this.get<Record<string, number>>('allocations', {}); }
