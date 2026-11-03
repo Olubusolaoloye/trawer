@@ -13,7 +13,7 @@ import type { StoreDesign } from '../store/StoreLayout';
 
 interface Draft { design: StoreDesign; brand_colour: string; logo_url: string | null; logo_path?: string }
 
-const SWATCHES = ['#9A3412', '#0B7A4B', '#23308C', '#7C3AED', '#BE185D', '#0E7490', '#B45309', '#0E1411'];
+const SWATCHES = ['#1C2A5C', '#0B7A4B', '#0E7490', '#7C3AED', '#BE185D', '#9A3412', '#B45309', '#0E1411'];
 const FONT_FAMILY: Record<string, string> = {
   grotesque: '"Bricolage Grotesque Variable", sans-serif', serif: '"Fraunces Variable", serif', rounded: '"Nunito Variable", sans-serif', classic: '"Inter Variable", sans-serif',
 };

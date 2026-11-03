@@ -13,7 +13,7 @@ const text = (max: number) => z.string().trim().max(max);
 const handle = z.string().trim().max(60).regex(/^[A-Za-z0-9._-]*$/, 'handle');
 
 export const storefrontSchema = z.object({
-  theme: z.enum(THEMES).default('market'),
+  theme: z.enum(THEMES).default('fresh'),
   accent: z.enum(ACCENTS).default('coral'),
   font: z.enum(FONTS).default('grotesque'),
   radius: z.enum(RADII).default('soft'),

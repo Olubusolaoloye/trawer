@@ -80,7 +80,7 @@ function BusinessPicker({ me }: { me: Me }) {
 
 function Onboarding() {
   const navigate = useNavigate();
-  const [f, setF] = useState({ name: '', slug: '', kind: 'wholesaler', brand_colour: '#9A3412', display_name: '' });
+  const [f, setF] = useState({ name: '', slug: '', kind: 'wholesaler', brand_colour: '#1C2A5C', display_name: '' });
   const [slugEdited, setSlugEdited] = useState(false);
   const slug = slugEdited ? f.slug : f.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
   const avail = useApi<{ available: boolean }>(slug.length >= 3 ? `/api/biz/slug-available/${slug}` : null);
@@ -89,7 +89,7 @@ function Onboarding() {
     await invalidate('/api/auth/me');
     navigate(`/dashboard/${r.business_id}/settings?welcome=1`);
   });
-  const swatches = ['#9A3412', '#0B7A4B', '#23308C', '#7C3AED', '#BE185D', '#0E1411'];
+  const swatches = ['#1C2A5C', '#0B7A4B', '#0E7490', '#7C3AED', '#BE185D', '#0E1411'];
   return (
     <main className="mx-auto max-w-md px-4 py-10">
       <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); void create.run(); }}>

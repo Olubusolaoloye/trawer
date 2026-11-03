@@ -31,7 +31,7 @@ begin
 
   -- business, created exactly like the onboarding RPC does (as the owner)
   perform set_config('request.jwt.claims', json_build_object('sub', v_owner, 'role', 'authenticated', 'phone', '+2348030000001', 'aal', 'aal2')::text, true);
-  v_biz := public.create_business('Balogun Fabrics', 'balogun', 'wholesaler', '#7C2D12', 'Alhaja Balogun');
+  v_biz := public.create_business('Balogun Fabrics', 'balogun', 'wholesaler', '#1C2A5C', 'Alhaja Balogun');
   perform set_config('request.jwt.claims', '', true);
 
   update public.businesses set address = '24 Balogun Street, Lagos Island', phone = '+2348030000001',

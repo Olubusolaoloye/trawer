@@ -4,7 +4,7 @@ import { ACCENT_FILLS, THEME_PALETTES, contrast, mix, normalizeStorefront, onCol
 describe('storefront design', () => {
   it('fills defaults for an empty config', () => {
     const s = normalizeStorefront({});
-    expect(s).toMatchObject({ theme: 'market', font: 'grotesque', radius: 'soft', header: 'brand', card: 'classic', hero: { enabled: true } });
+    expect(s).toMatchObject({ theme: 'fresh', font: 'grotesque', radius: 'soft', header: 'brand', card: 'classic', hero: { enabled: true } });
     expect(s.sections.map((x) => x.id)).toEqual(['hero', 'wholesale', 'reorder', 'categories', 'featured', 'products']);
   });
 
@@ -24,7 +24,7 @@ describe('storefront design', () => {
     expect(storefrontSchema.safeParse({ socials: { instagram: '<script>' } }).success).toBe(false);
     expect(storefrontSchema.safeParse({ about: 'x'.repeat(601) }).success).toBe(false);
     // bad stored config degrades to defaults instead of breaking the store
-    expect(normalizeStorefront({ theme: 'nope' }).theme).toBe('market');
+    expect(normalizeStorefront({ theme: 'nope' }).theme).toBe('fresh');
   });
 });
 
