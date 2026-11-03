@@ -49,7 +49,7 @@ export function AccountPage() {
         {c.account_number && (
           <p className="rounded-2xl border border-line bg-surface p-4 text-sm">{t('store.yourAccountLine', { n: c.account_number, bank: c.bank_name ?? '' })}</p>
         )}
-        {[{ to: '/orders', label: t('store.orders') }].map((l) => (
+        {[{ to: '/orders', label: t('store.orders') }, { to: '/account/privacy', label: t('privacy.title') }].map((l) => (
           <Link key={l.to} to={href(l.to)} className="flex min-h-14 items-center justify-between rounded-2xl border border-line bg-surface px-4 font-bold">{l.label}<ChevronRight className="size-5" aria-hidden /></Link>
         ))}
         <LanguagePicker />

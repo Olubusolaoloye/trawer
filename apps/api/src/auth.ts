@@ -137,7 +137,24 @@ export async function verifyOtp(phone: string, code: string): Promise<Session> {
   return devIssue(user!.id, phone, 'aal1');
 }
 
-export async function refreshSession(refreshToken: string): Promise<Session> {
+/**
+ * Refresh tokens rotate, so two requests refreshing the same token at once would race and the
+ * loser would sign the person out. Concurrent refreshes of one token share a single call, and the
+ * result is kept for 15 s for requests that arrive just after.
+ */
+const inflight = new Map<string, { p: Promise<Session>; at: number }>();
+export function refreshSession(refreshToken: string): Promise<Session> {
+  const now = Date.now();
+  for (const [k, v] of inflight) if (now - v.at > 15_000) inflight.delete(k);
+  const hit = inflight.get(refreshToken);
+  if (hit) return hit.p;
+  const p = doRefresh(refreshToken);
+  inflight.set(refreshToken, { p, at: now });
+  p.catch(() => inflight.delete(refreshToken));
+  return p;
+}
+
+async function doRefresh(refreshToken: string): Promise<Session> {
   if (env.AUTH_MODE === 'supabase') {
     return toSession(await gotrue('/token?grant_type=refresh_token', { refresh_token: refreshToken }));
   }

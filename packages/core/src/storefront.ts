@@ -19,7 +19,7 @@ export const storefrontSchema = z.object({
   header: z.enum(HEADERS).default('brand'),
   card: z.enum(CARDS).default('classic'),
   density: z.enum(DENSITIES).default('comfy'),
-  announcement: z.object({ enabled: z.boolean().default(false), text: text(140).default('') }).default({}),
+  announcement: z.object({ enabled: z.boolean().default(false), text: text(140).default('') }).prefault({}),
   hero: z.object({
     enabled: z.boolean().default(true),
     title: text(80).default(''),
@@ -27,12 +27,12 @@ export const storefrontSchema = z.object({
     image_path: z.string().max(300).regex(/^[A-Za-z0-9/_-]+\.webp$/).nullable().default(null),
     cta_label: text(30).default(''),
     cta_category: text(80).nullable().default(null),
-  }).default({}),
-  featured: z.object({ title: text(60).default(''), category: text(80).nullable().default(null) }).default({}),
+  }).prefault({}),
+  featured: z.object({ title: text(60).default(''), category: text(80).nullable().default(null) }).prefault({}),
   sections: z.array(z.object({ id: z.enum(SECTION_IDS), on: z.boolean() })).max(SECTION_IDS.length).default([]),
   show_stock: z.boolean().default(false),
   about: text(600).default(''),
-  socials: z.object({ instagram: handle.default(''), tiktok: handle.default(''), whatsapp: z.string().trim().max(20).regex(/^\+?\d*$/).default('') }).default({}),
+  socials: z.object({ instagram: handle.default(''), tiktok: handle.default(''), whatsapp: z.string().trim().max(20).regex(/^\+?\d*$/).default('') }).prefault({}),
 });
 
 export type StorefrontInput = z.input<typeof storefrontSchema>;

@@ -106,7 +106,7 @@ export default function InvoicePage() {
             {o.amount_paid_kobo > 0 && <Row k={t('doc.paidSoFar')} v={formatNaira(o.amount_paid_kobo)} className="text-green-ink" />}
             {o.balance_kobo > 0
               ? <Row k={t('doc.balanceToPay')} v={formatNaira(o.balance_kobo)} strong className="text-red-ink" />
-              : <p className="pt-1 text-right font-bold text-green-ink">{t('doc.paidInFull')}</p>}
+              : <div className="pt-1 text-right font-bold text-green-ink"><dt className="sr-only">{t('doc.balanceToPay')}</dt><dd>{t('doc.paidInFull')}</dd></div>}
           </dl>
         </section>
 

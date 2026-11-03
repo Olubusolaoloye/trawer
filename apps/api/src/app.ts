@@ -17,9 +17,21 @@ import { docRoutes } from './routes/docs';
 import { dashboardRoutes } from './routes/dashboard';
 import { socialBizRoutes, socialPublicRoutes } from './routes/social';
 import { reportRoutes } from './routes/reports';
+import { meRoutes } from './routes/me';
+import { clientErrorRoutes } from './routes/client-errors';
+import { bodyLimit } from 'hono/body-limit';
+import { compress } from 'hono/compress';
+import { rateLimit } from './limits';
+import { clientIp } from './http';
+import type { MiddlewareHandler } from 'hono';
 import { devRoutes } from './routes/dev';
 import { env } from './env';
 import { logError } from './log';
+
+const publicLimit: MiddlewareHandler<AppEnv> = async (c, next) => {
+  await rateLimit('public', `ip:${clientIp(c)}`, 300, 3600);
+  await next();
+};
 
 export function createApp() {
   const app = new Hono<AppEnv>();
@@ -42,7 +54,24 @@ export function createApp() {
       baseUri: ["'self'"],
       formAction: ["'self'"],
     },
+    // Browser powers we don't use are switched off; the microphone stays for voice-note product drafts.
+    permissionsPolicy: { camera: [], geolocation: [], payment: [], usb: [], microphone: ['self'] },
+    crossOriginOpenerPolicy: 'same-origin',
   }));
+
+  // Request size: 1 MB of JSON is plenty; photo uploads may be up to 12 MB.
+  app.use('/api/*', async (c, next) => {
+    const upload = /\/(uploads|proof|images)(\?|$)/.test(c.req.path) || c.req.path.endsWith('/proof');
+    return bodyLimit({ maxSize: (upload ? 13 : 1) * 1024 * 1024, onError: (cc) => cc.json({ error: 'too_large' }, 413) })(c, next);
+  });
+
+  // Compress API JSON (not the live order stream, which must flush each event at once, nor PDFs/images).
+  const gzip = compress();
+  app.use('/api/*', async (c, next) => (c.req.path.endsWith('/events') || /\/(pdf|image|proof|media)\b/.test(c.req.path) ? next() : gzip(c, next)));
+
+  // Public token pages (tracking, invoices) are unguessable; this also stops anyone hammering them.
+  app.use('/api/track/*', publicLimit);
+  app.use('/api/docs/*', publicLimit);
 
   app.use('*', async (c, next) => {
     c.set('requestId', c.req.header('x-request-id') ?? randomUUID());
@@ -117,6 +146,8 @@ export function createApp() {
   app.route('/api/social', socialPublicRoutes);
   app.route('/api/biz/:bid/social', socialBizRoutes);
   app.route('/api/biz/:bid/reports', reportRoutes);
+  app.route('/api/me', meRoutes);
+  app.route('/api/client-errors', clientErrorRoutes);
   app.route('/api/biz', dashboardRoutes);
   if (env.NODE_ENV !== 'production') app.route('/api/dev', devRoutes);
 

@@ -34,6 +34,8 @@ cronRoutes.post('/debt-reminders', async (c) => {
   return c.json({ queued, ...(await drainNotifications(200)) });
 });
 cronRoutes.post('/whatsapp-catalog', async (c) => c.json(await syncWhatsAppCatalogs()));
+/** Daily: NDPA retention (anonymise long-inactive customers, prune old message logs). */
+cronRoutes.post('/retention', async (c) => c.json(await withService(async (tx) => (await one<{ r: unknown }>(tx, `select public.apply_retention() r`))!.r)));
 /** Every minute: publish due Instagram/Facebook posts. */
 cronRoutes.post('/social', async (c) => c.json(await publishDuePosts()));
 

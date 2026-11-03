@@ -26,6 +26,14 @@ packages/core  Shared domain logic: pricing, units, schemas, providers
 On Supabase: `supabase link`, `supabase db push` (workdir `packages/db`), set `AUTH_MODE=supabase`,
 configure phone auth with Termii, and use Paystack test keys.
 
+## Production checklist
+
+- Schedule the cron jobs (`Authorization: Bearer $CRON_SECRET`): `notifications` and `social` every minute, `whatsapp-catalog` every 15 minutes, `debt-reminders` and `retention` daily (on Supabase, `expire_reservations` and `apply_retention` also run via pg_cron).
+- Set `SENTRY_DSN` to receive server and browser errors (browser errors are relayed through `/api/client-errors`, so no third-party script is added to pages). Personal data is masked before sending.
+- Behind a load balancer/CDN set `TRUST_PROXY_HOPS`.
+- Serve `apps/web/dist` through the API (it sends the pre-compressed `.br`/`.gz` files) or a CDN that honours them.
+- See SECURITY.md for the review and what each protection is tested by.
+
 ## Deliveries
 
 1. Invite riders in Dashboard → Settings → Staff with the **rider** role.

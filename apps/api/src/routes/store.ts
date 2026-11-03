@@ -6,6 +6,7 @@ import { ApiError, body, query, requireUser, type AppEnv, type Ctx } from '../ht
 import { imageUrl } from '../storage';
 import { ensureVirtualAccount } from '../payments';
 import { designView } from '../storefront';
+import { limitUserAndIp } from '../limits';
 import { normalizeStorefront } from '@trawer/core/storefront';
 
 const fewLeft = (n: number) => (n > 0 && n <= 10 ? n : null);
@@ -230,6 +231,7 @@ storeRoutes.post('/:slug/quote', async (c) => {
 
 storeRoutes.post('/:slug/register', async (c) => {
   const claims = requireUser(c);
+  await limitUserAndIp(c, 'signup', claims.sub!, 10, 40);
   const input = await body(c, registerBuyerInput.extend({ shop_photo_path: z.string().max(300).optional() }));
   const id = await withUser(claims, async (tx) => {
     const r = await one<{ id: string }>(tx, `select public.register_buyer($1, $2, $3, $4, $5, $6, 'v1', $7) as id`, [
@@ -243,7 +245,8 @@ storeRoutes.post('/:slug/register', async (c) => {
 
 storeRoutes.post('/:slug/checkout', async (c) => {
   const claims = requireUser(c);
-  const raw = await body(c, z.record(z.unknown()));
+  await limitUserAndIp(c, 'checkout', claims.sub!, 30, 120);
+  const raw = await body(c, z.record(z.string(), z.unknown()));
   const data = await withUser(claims, async (tx) => {
     const b = await business(tx, c.req.param('slug'));
     const parsed = checkoutInput.safeParse({ ...raw, business_id: b.id, channel: raw.channel === 'instagram' ? 'instagram' : 'web' });

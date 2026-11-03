@@ -60,7 +60,7 @@ export const registerBuyerInput = z.object({
   name: z.string().trim().min(2).max(120),
   business_name: z.string().trim().max(160).optional(),
   cac_number: z.string().trim().regex(/^(RC|BN|IT)?\s?\d{4,8}$/i, 'CAC numbers look like RC123456 or BN1234567').optional().or(z.literal('')),
-  accept_terms: z.literal(true, { errorMap: () => ({ message: 'Please accept the terms and privacy policy' }) }),
+  accept_terms: z.literal(true, { error: 'Please accept the terms and privacy policy' }),
   marketing_opt_in: z.boolean().default(false),
 });
 

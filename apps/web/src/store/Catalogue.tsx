@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { ArrowRight, Layers } from 'lucide-react';
 import { api } from '../lib/api';
+import { takeEarly } from '../lib/early';
 import { formatNaira, cx } from '../lib/format';
 import { useStoreLocation } from '../lib/store-context';
 import { Button, Empty, ProductGridSkeleton, fabricStyle } from '../components/ui';
@@ -34,7 +35,8 @@ export function Catalogue() {
     const ctrl = new AbortController();
     setItems(null);
     const qs = new URLSearchParams({ ...(q ? { q } : {}), ...(category ? { category } : {}) });
-    api<{ items: Item[]; nextCursor: string | null }>(`/api/store/${slug}/products?${qs}`, { signal: ctrl.signal })
+    const url = `/api/store/${slug}/products?${qs}`;
+    (takeEarly<{ items: Item[]; nextCursor: string | null }>(url) ?? api<{ items: Item[]; nextCursor: string | null }>(url, { signal: ctrl.signal }))
       .then((r) => { setItems(r.items); setCursor(r.nextCursor); })
       .catch(() => !ctrl.signal.aborted && setItems([]));
     return () => ctrl.abort();

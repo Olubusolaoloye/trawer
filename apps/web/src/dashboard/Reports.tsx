@@ -294,7 +294,8 @@ function TableCard({ title, action, children }: { title: string; action?: React.
   return (
     <Card className="space-y-3 p-0">
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4"><h2 className="font-display text-lg font-extrabold">{title}</h2>{action}</div>
-      <div className="overflow-x-auto pb-2">{children}</div>
+      {/* keyboard users can scroll wide tables too */}
+      <div className="overflow-x-auto pb-2 focus-visible:outline-offset-[-3px]" tabIndex={0} role="region" aria-label={title}>{children}</div>
     </Card>
   );
 }

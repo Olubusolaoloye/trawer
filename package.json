@@ -2,7 +2,9 @@
   "name": "trawer",
   "private": true,
   "packageManager": "pnpm@10.28.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -17,5 +19,10 @@
   "devDependencies": {
     "turbo": "^2.5.0",
     "typescript": "^5.9.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@babel/runtime@<7.26.10": "^7.26.10"
+    }
   }
 }

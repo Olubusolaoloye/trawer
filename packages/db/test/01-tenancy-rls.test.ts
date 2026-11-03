@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
-import { ANON } from '../src/claims';
+import { ANON, SERVICE } from '../src/claims';
 import {
   addBuyer,
   addStaff,
@@ -238,8 +238,10 @@ describe('buyers', () => {
 describe('rate limits', () => {
   it('blocks after the configured number of OTP attempts per window', async () => {
     const subject = `+234801${Date.now() % 10_000_000}`;
-    for (let i = 0; i < 3; i++) await rpc(ANON, 'public.check_rate_limit', ['otp', subject, 3, 600]);
-    await expectPgError(rpc(ANON, 'public.check_rate_limit', ['otp', subject, 3, 600]), 'rate_limited');
+    for (let i = 0; i < 3; i++) await rpc(SERVICE, 'public.check_rate_limit', ['otp', subject, 3, 600]);
+    await expectPgError(rpc(SERVICE, 'public.check_rate_limit', ['otp', subject, 3, 600]), 'rate_limited');
+    // Nobody but the server can touch the counters (otherwise a stranger could lock someone out).
+    await expectPgError(rpc(ANON, 'public.check_rate_limit', ['otp', subject, 1000, 600]), /permission denied/);
     // Stored key does not contain the phone number.
     const keys = await sql(`select key from rate_limits where key like 'otp:%'`);
     expect(keys.some((k) => k.key.includes(subject))).toBe(false);

@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { readFile } from 'node:fs/promises';
+import { brotliCompressSync, gzipSync } from 'node:zlib';
 import { join, resolve } from 'node:path';
 import { createApp } from './app';
 import { env } from './env';
@@ -23,10 +24,18 @@ if (env.WEB_DIST) {
   const root = resolve(env.WEB_DIST);
   // Never serve source maps or dotfiles even if a build left some behind.
   app.use('*', async (c, next) => (/\.map$|\/\./.test(c.req.path) ? c.notFound() : next()));
-  app.use('/assets/*', serveStatic({ root, onFound: (_p, c) => c.header('Cache-Control', 'public, max-age=31536000, immutable') }));
-  app.use('/*', serveStatic({ root }));
-  const index = await readFile(join(root, 'index.html'), 'utf8');
-  app.get('*', (c) => (c.req.path.startsWith('/api/') ? c.notFound() : c.html(index)));
+  // Pre-compressed (brotli/gzip) copies are made at build time; served by Accept-Encoding.
+  app.use('/assets/*', serveStatic({ root, precompressed: true, onFound: (_p, c) => { c.header('Cache-Control', 'public, max-age=31536000, immutable'); c.header('Vary', 'Accept-Encoding'); } }));
+  app.use('/*', serveStatic({ root, precompressed: true }));
+  const index = await readFile(join(root, 'index.html'));
+  const indexBr = brotliCompressSync(index);
+  const indexGz = gzipSync(index);
+  app.get('*', (c) => {
+    if (c.req.path.startsWith('/api/')) return c.notFound();
+    const accept = c.req.header('accept-encoding') ?? '';
+    const [bytes, enc] = /\bbr\b/.test(accept) ? [indexBr, 'br'] : /\bgzip\b/.test(accept) ? [indexGz, 'gzip'] : [index, null];
+    return c.body(new Uint8Array(bytes), 200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', Vary: 'Accept-Encoding', ...(enc ? { 'Content-Encoding': enc } : {}) });
+  });
 }
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {

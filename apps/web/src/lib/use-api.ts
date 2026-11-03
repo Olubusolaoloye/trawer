@@ -21,6 +21,11 @@ function load(key: string): Promise<unknown> {
   return p;
 }
 
+/** Start loading a key before any component asks for it (e.g. at page start-up). */
+export function preload(key: string): void {
+  if (!cache.has(key)) void load(key);
+}
+
 /**
  * Re-fetch every cached key matching prefix (call after mutations). Resolves once the mounted
  * queries have fresh data, so callers can await it before navigating.

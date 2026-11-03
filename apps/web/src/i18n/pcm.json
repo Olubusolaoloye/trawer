@@ -145,5 +145,10 @@
   "rep.net": "Gain after expenses",
   "rep.expenses": "Wetin you spend",
   "dash.reports": "Reports",
-  "rep.addExpense": "Add wetin you spend"
+  "rep.addExpense": "Add wetin you spend",
+  "crash.title": "Wahala don happen",
+  "crash.reload": "Load am again",
+  "privacy.title": "Your data and privacy",
+  "privacy.download": "Download my data",
+  "privacy.deleteStart": "Delete my account"
 }
