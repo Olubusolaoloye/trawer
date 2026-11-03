@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router';
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, Download, Minus, Plus, Table2, Trash2 } from 'lucide-react';
 import { nairaToKobo } from '@trawer/core/money';
 import { api } from '../lib/api';
+import { ask } from '../lib/demo';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { cx, formatDate, formatNaira } from '../lib/format';
 import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Select, Skeleton } from '../components/ui';
@@ -407,7 +408,7 @@ function ExpensesTab({ base, qs, range, summary }: { base: string; qs: string; r
                 <td className={td}>{t(`exp.${e.category}` as MessageKey)}</td>
                 <td className={cx(td, 'text-muted')}>{e.description ?? ''}<span className="block text-xs">{t(`exp.method.${e.method}` as MessageKey)}</span></td>
                 <td className={cx(td, 'num text-right font-semibold')}>{formatNaira(e.amount_kobo)}</td>
-                <td className={cx(td, 'text-right')}>{b.can('expenses.manage') && <button type="button" aria-label={t('rep.deleteExpense', { what: t(`exp.${e.category}` as MessageKey), amount: formatNaira(e.amount_kobo) })} onClick={() => { if (confirm(t('rep.deleteConfirm'))) void del.run(e.id); }} className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-ink"><Trash2 className="size-4" aria-hidden /></button>}</td>
+                <td className={cx(td, 'text-right')}>{b.can('expenses.manage') && <button type="button" aria-label={t('rep.deleteExpense', { what: t(`exp.${e.category}` as MessageKey), amount: formatNaira(e.amount_kobo) })} onClick={() => { if (ask(t('rep.deleteConfirm'))) void del.run(e.id); }} className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-ink"><Trash2 className="size-4" aria-hidden /></button>}</td>
               </tr>))}</tbody>
           </table>
         )}

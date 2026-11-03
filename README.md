@@ -80,3 +80,20 @@ For real posting:
    pg_cron is not available, `POST /api/cron/expire-reservations`; plus once a day
    `POST /api/cron/debt-reminders` (WhatsApp reminders for overdue credit sales), each with
    `Authorization: Bearer $CRON_SECRET`.
+
+## Clickable demo (no server)
+
+`apps/web` has a demo build that runs the real app with sample data and an in-browser stand-in for the API
+(`src/demo/mock.ts`), using hash URLs so it can be hosted as one static page. Normal builds contain none of it.
+
+```bash
+pnpm --filter @trawer/db exec tsx scripts/reset.ts --seed trawer_demo   # fresh sample shop
+# start the API on :8811 against trawer_demo (AUTH_MODE=dev, PAYMENT_PROVIDER=fake, WEB_DIST=apps/web/dist)
+node apps/web/scripts/demo/enrich.cjs                                     # credit, deliveries, expenses, social posts
+DEMO_BID=<business id> node apps/web/scripts/demo/record.cjs fixtures.json  # record real API answers
+node apps/web/scripts/demo/extra.cjs extra.json                           # prices + an order lifecycle
+node apps/web/scripts/demo/merge.cjs fixtures.json extra.json             # → src/demo/data.json (not committed)
+pnpm --filter @trawer/web build:demo && node apps/web/scripts/demo/artifact-page.mjs
+```
+
+Sign in as the owner with 0803 000 0001 or as a buyer with 0809 000 0001, code 000000.

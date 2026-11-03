@@ -1,6 +1,6 @@
 import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Route, Routes, useParams } from 'react-router';
+import { BrowserRouter, HashRouter, Route, Routes, useParams } from 'react-router';
 // Fonts are bundled and served from our own origin (no third-party font requests).
 import '@fontsource-variable/inter';
 import '@fontsource-variable/bricolage-grotesque/opsz.css';
@@ -75,11 +75,23 @@ function App() {
 const saved = (() => { try { return localStorage.getItem('trawer:locale'); } catch { return null; } })();
 if (saved && (LOCALES as readonly string[]).includes(saved) && saved !== 'en') void setLocale(saved as Locale);
 
-installGlobalHandlers();
-startEarlyFetches();
+// Demo build: install the in-browser sample backend before anything talks to the API.
+// (Inline env check so normal builds drop the demo code entirely.)
+const DEMO = import.meta.env.VITE_DEMO === '1';
+const ready = DEMO ? import('./demo/mock').then((m) => m.install()) : Promise.resolve();
+const Router = DEMO ? HashRouter : BrowserRouter;
+const DemoBar = DEMO ? lazy(() => import('./demo/DemoBar')) : null;
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary><BrowserRouter><App /></BrowserRouter></ErrorBoundary>
-  </StrictMode>,
-);
+void ready.then(() => {
+  if (!DEMO) { installGlobalHandlers(); startEarlyFetches(); }
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <Router>
+          {DemoBar && <Suspense fallback={null}><DemoBar /></Suspense>}
+          <App />
+        </Router>
+      </ErrorBoundary>
+    </StrictMode>,
+  );
+});

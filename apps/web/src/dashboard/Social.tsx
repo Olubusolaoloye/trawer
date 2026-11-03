@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router';
 import { CalendarClock, Check, ExternalLink, Heart, Image as ImageIcon, Link2, MessageCircle, RotateCcw, Search, Send, X } from 'lucide-react';
 import { CAPTION_MAX, HASHTAG_MAX, countHashtags } from '@trawer/core/social-caption';
 import { api } from '../lib/api';
+import { ask, hardNav } from '../lib/demo';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { cx, formatDate, formatNaira } from '../lib/format';
 import { Badge, Button, Card, Empty, ErrorNote, Input, Skeleton, Textarea } from '../components/ui';
@@ -50,7 +51,7 @@ export default function Social() {
 
 function ConnectButton({ label, variant = 'primary' }: { label: string; variant?: 'primary' | 'secondary' }) {
   const b = useBiz();
-  const go = useMutation(async () => { const r = await api<{ url: string }>(`/api/biz/${b.business.id}/social/connect`); window.location.assign(r.url); });
+  const go = useMutation(async () => { const r = await api<{ url: string }>(`/api/biz/${b.business.id}/social/connect`); hardNav(r.url); });
   return <><Button variant={variant} onClick={() => void go.run()} pending={go.pending}><Link2 className="size-5" aria-hidden />{label}</Button><ErrorNote error={go.error} /></>;
 }
 
@@ -84,7 +85,7 @@ function Accounts({ data }: { data: SocialData }) {
             </p>
           </div>
           {a.status === 'expired' ? <ConnectButton label={t('social.reconnect')} variant="secondary" />
-            : <Button size="sm" variant="ghost" onClick={() => { if (confirm(t('social.disconnectConfirm', { name: LABEL[a.platform] }))) void off.run(a.platform); }}>{t('social.disconnect')}</Button>}
+            : <Button size="sm" variant="ghost" onClick={() => { if (ask(t('social.disconnectConfirm', { name: LABEL[a.platform] }))) void off.run(a.platform); }}>{t('social.disconnect')}</Button>}
         </Card>
       ))}
       <ErrorNote error={off.error} />

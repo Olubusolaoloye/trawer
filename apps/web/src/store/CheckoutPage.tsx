@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Navigate } from 'react-router';
 import { Check, Lock, MapPin } from 'lucide-react';
 import { api } from '../lib/api';
+import { pageSearch } from '../lib/demo';
 import { cart } from '../lib/cart';
 import { useApi, useMutation } from '../lib/use-api';
 import { formatNaira, cx } from '../lib/format';
@@ -38,7 +39,7 @@ export function CheckoutPage() {
       delivery_method: method,
       delivery_address: method === 'delivery' ? { ...addr, area: addr.area || undefined, landmark: addr.landmark || undefined } : undefined,
       note: note || undefined,
-      channel: new URLSearchParams(window.location.search).get('ch') === 'ig' ? 'instagram' : 'web',
+      channel: pageSearch().get('ch') === 'ig' ? 'instagram' : 'web',
     } });
     setPlacedId(r.order.id);
     cart.clear(slug);

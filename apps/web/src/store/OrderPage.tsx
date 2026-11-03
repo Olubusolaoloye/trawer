@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { Check, Copy, FileText, ShieldCheck } from 'lucide-react';
 import { api } from '../lib/api';
+import { hardNav } from '../lib/demo';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { formatDate, formatNaira, cx } from '../lib/format';
 import { useStoreLocation } from '../lib/store-context';
@@ -207,7 +208,7 @@ export function OrderPage() {
 function InvoiceLink({ orderId }: { orderId: string }) {
   const get = useMutation(async () => {
     const r = await api<{ token: string }>(`/api/orders/${orderId}/invoice`, { json: {} });
-    window.location.assign(`/i/${r.token}`);
+    hardNav(`/i/${r.token}`);
   });
   return (
     <>

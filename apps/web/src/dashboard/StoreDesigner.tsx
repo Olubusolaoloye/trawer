@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Check, ExternalLink, ImagePlus, Monitor, Smartphone, Trash2, Upload } from 'lucide-react';
 import { THEME_PALETTES, THEMES, FONTS, RADII, HEADERS, CARDS, DENSITIES, type SectionId } from '@trawer/core/storefront-theme';
 import { api } from '../lib/api';
+import { msgOriginOk, msgTarget, pageHref } from '../lib/demo';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { loadFont } from '../lib/theme';
 import { cx } from '../lib/format';
@@ -48,10 +49,10 @@ function Designer({ draft, setDraft, dirty, onSaved }: { draft: Draft; setDraft:
   const setHero = (patch: Partial<StoreDesign['hero']>) => set({ hero: { ...d.hero, ...patch } });
 
   // Live preview: push the draft into the same-origin store iframe.
-  const send = () => frame.current?.contentWindow?.postMessage({ type: 'trawer:design', draft: { design: d, brand_colour: draft.brand_colour, logo_url: draft.logo_url } }, window.location.origin);
+  const send = () => frame.current?.contentWindow?.postMessage({ type: 'trawer:design', draft: { design: d, brand_colour: draft.brand_colour, logo_url: draft.logo_url } }, msgTarget());
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
-      if (e.origin === window.location.origin && e.source === frame.current?.contentWindow && (e.data as { type?: string })?.type === 'trawer:ready') send();
+      if (msgOriginOk(e) && e.source === frame.current?.contentWindow && (e.data as { type?: string })?.type === 'trawer:ready') send();
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
@@ -85,7 +86,7 @@ function Designer({ draft, setDraft, dirty, onSaved }: { draft: Draft; setDraft:
   };
 
   const storeUrl = `/s/${b.business.slug}`;
-  const previewSrc = useMemo(() => `${storeUrl}?design_preview=1`, [storeUrl]);
+  const previewSrc = useMemo(() => pageHref(`${storeUrl}?design_preview=1`), [storeUrl]);
 
   return (
     <div className="space-y-4">

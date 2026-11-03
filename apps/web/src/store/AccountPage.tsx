@@ -27,7 +27,8 @@ export function AccountPage() {
         <PageHeader title={t('auth.title')} back={href('/')} />
         <div className="px-4">
           {params.get('wholesale') && <p className="mb-4 rounded-2xl bg-indigo-50 p-4 text-sm text-indigo">{t('register.wholesaleIntro')}</p>}
-          <PhoneSignIn onDone={() => undefined} />
+          {/* Signed in from checkout: carry on (checkout sends new buyers back here to register). */}
+          <PhoneSignIn onDone={() => { if (next) done(); }} />
         </div>
       </div>
     );

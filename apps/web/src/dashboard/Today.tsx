@@ -78,7 +78,9 @@ export default function Today() {
           <p className="text-sm font-semibold text-[#C9C3B6]">{t('dash.takenToday')}</p>
           <p className="num font-display text-[40px] font-extrabold leading-none tracking-tight">{short(data.taken_today_kobo)}</p>
           {change !== null && <p className={cx('text-sm font-semibold', change >= 0 ? 'text-[#8EE0B5]' : 'text-[#F5A399]')}>{change >= 0 ? '▲' : '▼'} {Math.abs(change)}% {t('dash.vsLastWeek')}</p>}
-          <div className="grid grid-cols-2 gap-1.5 pt-1">
+          {/* The headline is money received; these tiles are sales (orders confirmed today, credit included). */}
+          {Object.keys(data.by_channel).length > 0 && <p className="pt-1 text-xs font-semibold text-[#C9C3B6]">{t('dash.salesByChannel')} · <span className="num">{short(data.sales_today_kobo)}</span></p>}
+          <div className="grid grid-cols-2 gap-1.5">
             {Object.entries(data.by_channel).map(([ch, v]) => (
               <span key={ch} className="rounded-xl bg-white/10 px-2 py-1.5 backdrop-blur"><span className="block text-[11px] text-[#C9C3B6]">{CH[ch]?.label ?? ch}</span><b className="num text-sm">{short(v)}</b></span>
             ))}

@@ -299,9 +299,10 @@ test('reports: owner sees sales and profit, adds an expense, and downloads a CSV
   const before = await headline.getByText(/^₦/).nth(2).textContent();
   await page.getByLabel('Amount (₦)').fill('2500');
   await page.getByLabel('Category').selectOption('transport');
-  await page.getByLabel('Note').fill('Keke to Balogun market');
+  const note = `Keke to Balogun market ${Date.now()}`; // unique: the dev database keeps earlier runs' expenses
+  await page.getByLabel('Note').fill(note);
   await page.getByRole('button', { name: 'Add expense' }).click();
-  await expect(page.getByRole('cell', { name: /Keke to Balogun market/ })).toBeVisible();
+  await expect(page.getByRole('cell', { name: note })).toBeVisible();
   await expect.poll(async () => headline.getByText(/^₦/).nth(2).textContent()).not.toBe(before);
 
   const download = page.waitForEvent('download');

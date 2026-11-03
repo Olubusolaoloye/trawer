@@ -19,3 +19,7 @@ android/
 # Expo
 apps/pos/dist/
 preview/
+
+# Demo build (generated sample data + output)
+apps/web/src/demo/data.json
+apps/web/dist-demo/

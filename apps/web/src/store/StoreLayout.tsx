@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { Camera, MapPin, MessageCircle, Music2, Search, ShoppingBag, User } from 'lucide-react';
 import { useApi } from '../lib/use-api';
+import { msgOriginOk, msgTarget, pageSearch } from '../lib/demo';
 import { useCart } from '../lib/cart';
 import { useStoreLocation } from '../lib/store-context';
 import { applyStoreTheme, type Storefront } from '../lib/theme';
@@ -25,7 +26,7 @@ export interface StoreInfo {
 
 /** Draft design pushed by the dashboard's store designer (same-origin iframe only). */
 interface PreviewDraft { design: StoreDesign; brand_colour: string; logo_url: string | null }
-const PREVIEW = typeof window !== 'undefined' && window.parent !== window && new URLSearchParams(window.location.search).get('design_preview') === '1';
+const PREVIEW = typeof window !== 'undefined' && window.parent !== window && pageSearch().get('design_preview') === '1';
 
 const PreviewCtx = createContext<PreviewDraft | null>(null);
 
@@ -42,12 +43,12 @@ function usePreviewDraft(): PreviewDraft | null {
   useEffect(() => {
     if (!PREVIEW) return;
     const onMsg = (e: MessageEvent) => {
-      if (e.origin !== window.location.origin || e.source !== window.parent) return;
+      if (!msgOriginOk(e) || e.source !== window.parent) return;
       const m = e.data as { type?: string; draft?: PreviewDraft };
       if (m?.type === 'trawer:design' && m.draft) setDraft(m.draft);
     };
     window.addEventListener('message', onMsg);
-    window.parent.postMessage({ type: 'trawer:ready' }, window.location.origin);
+    window.parent.postMessage({ type: 'trawer:ready' }, msgTarget());
     return () => window.removeEventListener('message', onMsg);
   }, []);
   return draft;
