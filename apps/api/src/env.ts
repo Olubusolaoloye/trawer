@@ -13,6 +13,8 @@ const schema = z.object({
   ROOT_DOMAIN: z.string().default('localhost:5173'),
   APP_URL: z.string().url().default('http://localhost:5173'),
   WEB_DIST: z.string().optional(),
+  /** Server-render bundle (default: dist-ssr/entry-server.js next to WEB_DIST). */
+  WEB_SSR: z.string().optional(),
   PAYMENT_PROVIDER: z.enum(['paystack', 'fake']).default('fake'),
   PAYSTACK_SECRET_KEY: z.string().optional(),
   PAYSTACK_PREFERRED_BANK: z.string().optional(),

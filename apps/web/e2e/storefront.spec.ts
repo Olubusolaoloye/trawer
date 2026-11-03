@@ -311,3 +311,27 @@ test('reports: owner sees sales and profit, adds an expense, and downloads a CSV
   const file = await download;
   expect(file.suggestedFilename()).toMatch(/^trawer-products-\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$/);
 });
+
+test.describe('server-rendered store home', () => {
+  test.use({ javaScriptEnabled: false });
+  test('shows the shop and its products before any JavaScript runs', async ({ page }) => {
+    const res = await page.goto('/s/balogun');
+    expect(res!.headers()['cache-control']).toBe('private, no-cache');
+    await expect(page).toHaveTitle('Balogun Fabrics');
+    await expect(page.getByRole('heading', { name: 'Balogun Fabrics' }).first()).toBeVisible();
+    await expect(page.locator('a[href^="/s/balogun/p/"]').first()).toBeVisible();
+    await expect(page.locator('#products-h')).toBeVisible();
+  });
+});
+
+test('server-rendered store home wakes up without refetching and stays interactive', async ({ page }) => {
+  const calls: string[] = [];
+  page.on('request', (r) => { if (r.url().includes('/api/')) calls.push(new URL(r.url()).pathname); });
+  const errors: string[] = [];
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.goto('/s/balogun', { waitUntil: 'networkidle' });
+  expect(calls).toEqual([]); // products and shop came with the page
+  await page.getByRole('button', { name: /^Ankara/ }).click();
+  await expect(page.locator('#products-h')).toHaveText('Ankara');
+  expect(errors).toEqual([]); // includes React hydration mismatch reports
+});

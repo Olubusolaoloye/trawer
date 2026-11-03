@@ -38,6 +38,15 @@ Each item says what protects it and which automated test proves it. Tests run on
 | Headers | CSP `default-src 'self'` (fonts self-only, `frame-ancestors 'self'`), HSTS 2 years, `X-Frame-Options: SAMEORIGIN`, COOP, `Permissions-Policy` (camera/geolocation/payment off) | `api hardening` “security headers” |
 | No third-party fonts or scripts | Fonts bundled; error reports go to our own origin and are relayed server-side | CSP above |
 
+## Server rendering
+
+| Check | How | Proof |
+|---|---|---|
+| Shop text can't inject markup | Every shop-typed value is HTML-escaped; page data travels in a non-executable `application/json` block with `<`, `>`, `&`, U+2028/9 escaped | `api ssr` “escapes whatever a shop owner types”, “embedded data can never close its script tag” |
+| No data leaks between visitors | Rendering is synchronous; the data cache is cleared before and after every render | `entry-server.tsx` |
+| Personal pages aren't cached publicly | `Cache-Control: private, no-cache`, `Vary: Cookie` | `api ssr`, e2e |
+| Sessions stay valid | A session refreshed while rendering is passed on to the browser | manual check (refresh-token-only request) |
+
 ## Privacy (NDPA 2023)
 
 | Right | Where | Proof |
@@ -58,6 +67,7 @@ store home in all four themes: 0 violations (`e2e/a11y.spec.ts`).
 - `pnpm audit --prod`: 2 moderate findings in `glob`/`minimatch` inside Expo's developer CLI
   (`@expo/cli`), which runs on a developer's machine only and is never shipped to phones or servers.
   Will clear with the next Expo SDK.
-- Storefront performance (Lighthouse mobile, slow-4G + 4× CPU): score 84–92, LCP 3.0–3.9 s — above
-  the 2.5 s target. Compression, parallel data loading and route splitting are in; the remaining time
-  is the client-rendered app starting up. Next step: server-render the store home page.
+- Storefront performance (Lighthouse mobile, slow 4G + 4× CPU). Store home pages are server-rendered
+  (`apps/api/src/ssr.ts`). Real throttling (devtools): LCP 1.7–2.1 s, score 90–95 (was 3.0–3.4 s without
+  server rendering). Lighthouse's default simulated mode still estimates 2.6 s because it counts the app's
+  JavaScript and fonts against first paint; the HTML paints before they arrive.

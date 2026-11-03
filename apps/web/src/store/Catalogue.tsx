@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { ArrowRight, Layers } from 'lucide-react';
 import { api } from '../lib/api';
 import { takeEarly } from '../lib/early';
+import { peek } from '../lib/use-api';
 import { formatNaira, cx } from '../lib/format';
 import { useStoreLocation } from '../lib/store-context';
 import { Button, Empty, ProductGridSkeleton, fabricStyle } from '../components/ui';
@@ -17,14 +18,22 @@ export interface Item {
   swatches: { colour: string; hex: string | null; in_stock: boolean }[];
 }
 
+/** The products request for a store page (the server renders with exactly this key). */
+export const productsUrl = (slug: string, q: string, category: string) =>
+  `/api/store/${slug}/products?${new URLSearchParams({ ...(q ? { q } : {}), ...(category ? { category } : {}) })}`;
+export const featuredUrl = (slug: string, category: string) => `/api/store/${slug}/products?${new URLSearchParams({ category, limit: '12' })}`;
+
 export function Catalogue() {
   const { slug, href } = useStoreLocation();
   const store = useStore().data!;
   const [params, setParams] = useSearchParams();
   const q = params.get('q') ?? '';
   const category = params.get('category') ?? '';
-  const [items, setItems] = useState<Item[] | null>(null);
-  const [cursor, setCursor] = useState<string | null>(null);
+  // Server-rendered home page: start with the products it was rendered with (no refetch, no flash).
+  const first = peek<{ items: Item[]; nextCursor: string | null }>(productsUrl(slug, q, category));
+  const [items, setItems] = useState<Item[] | null>(first?.items ?? null);
+  const [cursor, setCursor] = useState<string | null>(first?.nextCursor ?? null);
+  const fromServer = useRef(!!first);
   const [loadingMore, setLoadingMore] = useState(false);
   const { lines, quote } = useQuote();
   const me = store.me;
@@ -32,10 +41,10 @@ export function Catalogue() {
   const browsing = !!(q || category);
 
   useEffect(() => {
+    if (fromServer.current) { fromServer.current = false; return; }
     const ctrl = new AbortController();
     setItems(null);
-    const qs = new URLSearchParams({ ...(q ? { q } : {}), ...(category ? { category } : {}) });
-    const url = `/api/store/${slug}/products?${qs}`;
+    const url = productsUrl(slug, q, category);
     (takeEarly<{ items: Item[]; nextCursor: string | null }>(url) ?? api<{ items: Item[]; nextCursor: string | null }>(url, { signal: ctrl.signal }))
       .then((r) => { setItems(r.items); setCursor(r.nextCursor); })
       .catch(() => !ctrl.signal.aborted && setItems([]));
@@ -144,11 +153,14 @@ function Hero({ store, onShop }: { store: StoreInfo; onShop: (c: string) => void
 function Featured({ design, onAll }: { design: StoreDesign; onAll: () => void }) {
   const { slug } = useStoreLocation();
   const me = useStore().data?.me;
-  const [items, setItems] = useState<Item[] | null>(null);
   const cat = design.featured.category!;
+  const first = peek<{ items: Item[] }>(featuredUrl(slug, cat));
+  const [items, setItems] = useState<Item[] | null>(first?.items ?? null);
+  const fromServer = useRef(!!first);
   useEffect(() => {
+    if (fromServer.current) { fromServer.current = false; return; }
     const ctrl = new AbortController();
-    api<{ items: Item[] }>(`/api/store/${slug}/products?${new URLSearchParams({ category: cat, limit: '12' })}`, { signal: ctrl.signal })
+    api<{ items: Item[] }>(featuredUrl(slug, cat), { signal: ctrl.signal })
       .then((r) => setItems(r.items)).catch(() => !ctrl.signal.aborted && setItems([]));
     return () => ctrl.abort();
   }, [slug, cat, me?.id]);

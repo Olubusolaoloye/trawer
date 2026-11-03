@@ -36,27 +36,33 @@ export function inkFor(hex: string): string {
 const VARS = ['--brand', '--brand-ink', '--color-paper', '--color-surface', '--color-ink', '--color-ink-2', '--color-body', '--color-muted', '--color-line', '--color-line-soft',
   '--display-font', '--r-xl', '--r-2xl', '--r-3xl', '--r-card', '--card-shadow'];
 
-export function applyStoreTheme(design: Storefront, brand: string, el: HTMLElement = document.documentElement): () => void {
+/** The shop's look as CSS variables (also written into server-rendered pages, so the first paint is on-brand). */
+export function storeThemeVars(design: Storefront, brand: string): Record<string, string> {
   const p = THEME_PALETTES[design.theme];
   const r = RADIUS[design.radius];
-  const set = (k: string, v: string) => el.style.setProperty(k, v);
-  set('--brand', brand);
-  set('--brand-ink', inkFor(brand));
-  set('--color-paper', p.canvas);
-  set('--color-surface', p.surface);
-  set('--color-ink', p.ink);
-  set('--color-ink-2', `color-mix(in srgb, ${p.ink} 86%, ${p.canvas})`);
-  set('--color-body', p.body);
-  set('--color-muted', p.muted);
-  set('--color-line', p.line);
-  set('--color-line-soft', p.soft);
-  set('--display-font', FONT_STACK[design.font]);
-  set('--r-xl', r.xl); set('--r-2xl', r['2xl']); set('--r-3xl', r['3xl']); set('--r-card', r.card);
-  set('--card-shadow', design.theme === 'bold' ? '4px 4px 0 #111111'
-    : p.dark ? '0 1px 0 rgb(255 255 255 / 0.04) inset, 0 12px 30px -18px rgb(0 0 0 / 0.7)'
-    : '0 1px 2px rgb(14 20 17 / 0.04), 0 10px 28px -16px rgb(14 20 17 / 0.18)');
+  return {
+    '--brand': brand,
+    '--brand-ink': inkFor(brand),
+    '--color-paper': p.canvas,
+    '--color-surface': p.surface,
+    '--color-ink': p.ink,
+    '--color-ink-2': `color-mix(in srgb, ${p.ink} 86%, ${p.canvas})`,
+    '--color-body': p.body,
+    '--color-muted': p.muted,
+    '--color-line': p.line,
+    '--color-line-soft': p.soft,
+    '--display-font': FONT_STACK[design.font],
+    '--r-xl': r.xl, '--r-2xl': r['2xl'], '--r-3xl': r['3xl'], '--r-card': r.card,
+    '--card-shadow': design.theme === 'bold' ? '4px 4px 0 #111111'
+      : p.dark ? '0 1px 0 rgb(255 255 255 / 0.04) inset, 0 12px 30px -18px rgb(0 0 0 / 0.7)'
+      : '0 1px 2px rgb(14 20 17 / 0.04), 0 10px 28px -16px rgb(14 20 17 / 0.18)',
+    'color-scheme': p.dark ? 'dark' : 'light',
+  };
+}
+
+export function applyStoreTheme(design: Storefront, brand: string, el: HTMLElement = document.documentElement): () => void {
+  for (const [k, v] of Object.entries(storeThemeVars(design, brand))) el.style.setProperty(k, v);
   el.dataset.storeTheme = design.theme;
-  el.style.colorScheme = p.dark ? 'dark' : 'light';
   void loadFont(design.font);
   return () => {
     for (const k of VARS) el.style.removeProperty(k);

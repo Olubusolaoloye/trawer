@@ -21,6 +21,23 @@ function load(key: string): Promise<unknown> {
   return p;
 }
 
+/** Answers delivered with a server-rendered page: components start with them instead of fetching. */
+export function seedCache(entries: Record<string, unknown>): void {
+  const at = Date.now();
+  for (const [key, data] of Object.entries(entries)) cache.set(key, { data, at });
+}
+
+/** Server rendering only: forget everything between requests (one render never sees another's data). */
+export function resetCache(): void {
+  cache.clear();
+  subs.clear();
+}
+
+/** Already-loaded data for a key, if any (no fetch). */
+export function peek<T>(key: string): T | undefined {
+  return cache.get(key)?.data as T | undefined;
+}
+
 /** Start loading a key before any component asks for it (e.g. at page start-up). */
 export function preload(key: string): void {
   if (!cache.has(key)) void load(key);
@@ -51,7 +68,8 @@ export function useApi<T = any>(key: string | null, opts: { staleMs?: number } =
     set.add(fn);
     return () => set!.delete(fn);
   }, [key]);
-  const snapshot = useSyncExternalStore(subscribe, () => (key ? cache.get(key) : undefined));
+  const get = () => (key ? cache.get(key) : undefined);
+  const snapshot = useSyncExternalStore(subscribe, get, get);
   useEffect(() => {
     if (!key) return;
     const e = cache.get(key);

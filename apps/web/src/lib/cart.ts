@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react';
 export interface CartLine { variant_id: string; unit_id?: string; qty: number; product_id: string; name: string; label?: string | null; image?: string | null; unit_name?: string }
 
 const listeners = new Set<() => void>();
+const EMPTY: CartLine[] = [];
 const key = (slug: string) => `trawer:cart:${slug}`;
 const memo = new Map<string, { raw: string | null; lines: CartLine[] }>();
 
@@ -50,5 +51,7 @@ export function useCart(slug: string): CartLine[] {
       return () => { listeners.delete(fn); window.removeEventListener('storage', onStorage); };
     },
     () => readCart(slug),
+    // Server-rendered pages never know the cart; it fills in right after the page wakes up.
+    () => EMPTY,
   );
 }

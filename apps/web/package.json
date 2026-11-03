@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build && node scripts/check-bundle.mjs && node scripts/precompress.mjs",
+    "build": "tsc --noEmit && vite build && vite build --ssr src/entry-server.tsx && node scripts/check-bundle.mjs && node scripts/precompress.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

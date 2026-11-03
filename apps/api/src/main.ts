@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path';
 import { createApp } from './app';
 import { env } from './env';
 import { isPublicBucket, readLocalImage } from './storage';
+import { loadSsr } from './ssr';
 
 const app = createApp();
 
@@ -30,8 +31,13 @@ if (env.WEB_DIST) {
   const index = await readFile(join(root, 'index.html'));
   const indexBr = brotliCompressSync(index);
   const indexGz = gzipSync(index);
-  app.get('*', (c) => {
+  // Store home pages are server-rendered (falls back to the app shell below if anything is off).
+  const ssr = await loadSsr(app, index.toString('utf8'));
+  console.info(ssr ? 'store home pages: server-rendered' : 'store home pages: app shell (no SSR bundle)');
+  app.get('*', async (c) => {
     if (c.req.path.startsWith('/api/')) return c.notFound();
+    const rendered = ssr ? await ssr(c) : null;
+    if (rendered) return rendered;
     const accept = c.req.header('accept-encoding') ?? '';
     const [bytes, enc] = /\bbr\b/.test(accept) ? [indexBr, 'br'] : /\bgzip\b/.test(accept) ? [indexGz, 'gzip'] : [index, null];
     return c.body(new Uint8Array(bytes), 200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', Vary: 'Accept-Encoding', ...(enc ? { 'Content-Encoding': enc } : {}) });

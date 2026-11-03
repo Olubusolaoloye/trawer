@@ -6,8 +6,10 @@ const api = process.env.API_URL ?? 'http://localhost:8787';
 // Demo build (pnpm build:demo): relative asset paths so it runs as a static page anywhere.
 const demo = process.env.VITE_DEMO === '1';
 
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
   base: demo ? './' : '/',
+  // Server bundle (entry-server.tsx) is self-contained: the API server loads it without web's node_modules.
+  ssr: { noExternal: true },
   plugins: [react(), tailwindcss()],
   server: {
     host: true,
@@ -17,14 +19,14 @@ export default defineConfig({
   preview: { proxy: { '/api': api, '/media': api } },
   build: {
     target: 'es2020',
-    outDir: demo ? 'dist-demo' : 'dist',
+    outDir: isSsrBuild ? 'dist-ssr' : demo ? 'dist-demo' : 'dist',
     cssCodeSplit: true,
     // Never publish source maps: they expose the app's source and API structure.
     // SOURCEMAP=hidden builds them for an error tracker upload; check-bundle deletes them before deploy.
     sourcemap: process.env.SOURCEMAP === 'hidden' ? 'hidden' : false,
     rollupOptions: {
-      output: {
-        manualChunks(id) {
+      output: isSsrBuild ? {} : {
+        manualChunks(id: string) {
           if (id.includes('node_modules/react') || id.includes('node_modules/scheduler')) return 'react';
           if (id.includes('node_modules/react-router')) return 'router';
           return undefined;
@@ -32,4 +34,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
