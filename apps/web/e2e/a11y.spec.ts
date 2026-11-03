@@ -64,7 +64,7 @@ test('dashboard pages (owner)', async ({ page }) => {
   for (const [path, wait] of [
     ['orders', 'Orders'], ['products', 'Products'], ['customers', 'Customers'], ['debtors', 'Who owes you'], ['reports', 'Reports'],
     ['social', 'Instagram & Facebook'], ['design', 'Store design'], ['settings', 'Settings'], ['tills', 'Tills'],
-    ['products/import', 'Import products'], ['products/snap', 'Snap a product'],
+    ['products/import', 'Import products'], ['products/snap', 'Snap a product'], ['products/labels', 'Barcode labels'],
   ] as const) {
     await page.goto(`${base}/${path}`);
     await page.getByRole('heading', { name: new RegExp(wait), level: 1 }).first().waitFor();

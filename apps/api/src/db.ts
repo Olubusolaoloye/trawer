@@ -39,6 +39,7 @@ export function dbErrorCode(err: unknown): string {
   // Our own functions raise snake_case codes (register_first, mfa_required, ...); keep them.
   if (e?.code === '42501') return e.message && /^[a-z_]+$/.test(e.message) ? e.message : 'permission_denied';
   if (e?.code === 'P0429') return 'rate_limited';
+  if (e?.code === 'P0002') return 'not_found';
   if (e?.code === 'P0409') return e.message === 'insufficient_allocation' ? 'insufficient_allocation' : 'insufficient_stock';
   if (e?.code === '23505') return 'duplicate';
   if (e?.code === '22023' || e?.code === '23514') return e.message ?? 'invalid_input';

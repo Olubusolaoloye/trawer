@@ -278,6 +278,12 @@ const routes: [string, RegExp, Handler][] = [
     save();
     return ok({ ok: true });
   }],
+  ['GET', /^\/api\/biz\/([^/]+)\/customers\/([0-9a-f-]{36})$/, (_r, m) => {
+    const list = recorded(`/api/biz/${m[1]}/customers`)?.body?.customers ?? [];
+    const c = list.find((x: any) => x.id === m[2]);
+    if (!c) return fail(404, 'not_found');
+    return ok({ customer: { ...c, orders: 0, tier: c.tier ?? null }, prices: [], can_edit: true });
+  }],
   ['POST', /^\/api\/biz\/([^/]+)\/products$/, (_r, m) => {
     // Nothing is saved: show an existing sample product so the flow still ends on a product page.
     toast('Demo: product "saved", but nothing is stored for real. Here is a sample product.');

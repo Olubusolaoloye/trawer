@@ -10,7 +10,7 @@ import { formatNaira } from '@trawer/core/money';
 
 const require = createRequire(import.meta.url);
 let fonts: Promise<[Uint8Array, Uint8Array]> | null = null;
-function loadFonts() {
+export function loadFonts() {
   fonts ??= Promise.all([
     readFile(require.resolve('@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf')),
     readFile(require.resolve('@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf')),

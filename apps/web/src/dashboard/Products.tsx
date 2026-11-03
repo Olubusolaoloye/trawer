@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
-import { Camera, FileSpreadsheet, ImagePlus, Plus, Send, Sparkles, Trash2 } from 'lucide-react';
+import { Barcode, Camera, FileSpreadsheet, ImagePlus, Plus, Send, Sparkles, Trash2 } from 'lucide-react';
 import { nairaToKobo } from '@trawer/core/money';
 import { api } from '../lib/api';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
@@ -10,6 +10,7 @@ import { t } from '../i18n';
 import { useBiz } from './context';
 import { useMfaRetry } from './MfaGate';
 import { ImportProducts } from './ImportProducts';
+import { Labels } from './Labels';
 import { SnapProduct, type SnapResult } from './SnapProduct';
 
 export default function Products() {
@@ -19,6 +20,7 @@ export default function Products() {
       <Route path="new" element={<NewProduct />} />
       <Route path="import" element={<ImportProducts />} />
       <Route path="snap" element={<SnapProduct />} />
+      <Route path="labels" element={<Labels />} />
       <Route path=":pid" element={<ProductDetail />} />
     </Routes>
   );
@@ -40,6 +42,7 @@ function ProductList() {
           <div className="flex flex-wrap gap-2">
             <Link to={`${b.base}/products/snap`} className="press inline-flex min-h-12 items-center gap-2 rounded-xl bg-ink px-4 font-bold text-paper"><Camera className="size-5" aria-hidden />{t('snap.button')}</Link>
             <Link to={`${b.base}/products/import`} className="press inline-flex min-h-12 items-center gap-2 rounded-xl border-[1.5px] border-ink/85 bg-surface px-4 font-bold"><FileSpreadsheet className="size-5" aria-hidden />{t('imp.button')}</Link>
+            <Link to={`${b.base}/products/labels`} className="press inline-flex min-h-12 items-center gap-2 rounded-xl border-[1.5px] border-ink/85 bg-surface px-4 font-bold"><Barcode className="size-5" aria-hidden />{t('lbl.button')}</Link>
             <Link to={`${b.base}/products/new`} className="press inline-flex min-h-12 items-center gap-2 rounded-xl bg-green px-4 font-bold text-white"><Plus className="size-5" aria-hidden />{t('dash.newProduct')}</Link>
           </div>
         )}
@@ -233,6 +236,7 @@ function ProductDetail() {
         </div>
       </div>
       <ErrorNote error={setStatus.error ?? setAutopost.error} />
+      <Link to={`${b.base}/products/labels?product=${p.id}`} className="press inline-flex min-h-11 items-center gap-2 rounded-xl border-[1.5px] border-ink/85 bg-surface px-4 text-sm font-bold"><Barcode className="size-4" aria-hidden />{t('lbl.printForProduct')}</Link>
       {b.can('social.manage') && (
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-line/70 bg-white p-3 shadow-card">
           <Link to={`${b.base}/social?products=${p.id}`} className={cx('press inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold text-white', p.status !== 'active' && 'pointer-events-none opacity-50')}

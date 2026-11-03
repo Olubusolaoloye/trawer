@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, Route, Routes, useSearchParams } from 'react-router';
+import { ChevronRight } from 'lucide-react';
+import { CustomerDetail } from './CustomerDetail';
 import { api } from '../lib/api';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { formatNaira } from '../lib/format';
@@ -8,6 +10,15 @@ import { t } from '../i18n';
 import { useBiz } from './context';
 
 export default function Customers() {
+  return (
+    <Routes>
+      <Route index element={<CustomerList />} />
+      <Route path=":cid" element={<CustomerDetail />} />
+    </Routes>
+  );
+}
+
+function CustomerList() {
   const b = useBiz();
   const [params, setParams] = useSearchParams();
   const pending = params.get('pending') === '1';
@@ -39,10 +50,13 @@ export default function Customers() {
             <li key={c.id}>
               <Card className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="font-semibold">{c.name || '—'} {c.business_name && <span className="text-body">· {c.business_name}</span>}</p>
-                    <p className="text-sm text-body">{c.phone} · {c.buyer_type.replace('_', ' ')}{c.tier ? ` · ${c.tier}` : ''}</p>
-                  </div>
+                  <Link to={c.id} className="group flex min-w-0 flex-1 items-center gap-2">
+                    <span className="min-w-0">
+                      <span className="block font-semibold group-hover:underline">{c.name || '—'} {c.business_name && <span className="text-body">· {c.business_name}</span>}</span>
+                      <span className="block text-sm text-body">{c.phone} · {c.buyer_type.replace('_', ' ')}{c.tier ? ` · ${c.tier}` : ''}</span>
+                    </span>
+                    <ChevronRight className="size-5 shrink-0 text-muted" aria-hidden />
+                  </Link>
                   <div className="flex gap-1">
                     {c.wholesale_status !== 'not_applicable' && <Badge tone={c.wholesale_status === 'approved' ? 'good' : c.wholesale_status === 'pending' ? 'warn' : 'bad'}>{c.wholesale_status}</Badge>}
                     {c.owing_kobo > 0 && <Badge tone="bad">owes {formatNaira(c.owing_kobo)}</Badge>}

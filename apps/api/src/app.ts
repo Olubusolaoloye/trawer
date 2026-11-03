@@ -16,6 +16,7 @@ import { trackRoutes } from './routes/track';
 import { docRoutes } from './routes/docs';
 import { dashboardRoutes } from './routes/dashboard';
 import { catalogRoutes } from './routes/catalog';
+import { customerPriceRoutes } from './routes/customer-prices';
 import { socialBizRoutes, socialPublicRoutes } from './routes/social';
 import { reportRoutes } from './routes/reports';
 import { meRoutes } from './routes/me';
@@ -150,6 +151,7 @@ export function createApp() {
   app.route('/api/me', meRoutes);
   app.route('/api/client-errors', clientErrorRoutes);
   app.route('/api/biz', catalogRoutes);
+  app.route('/api/biz', customerPriceRoutes);
   app.route('/api/biz', dashboardRoutes);
   if (env.NODE_ENV !== 'production') app.route('/api/dev', devRoutes);
 
@@ -160,6 +162,7 @@ export function createApp() {
     const code = dbErrorCode(err);
     const status = (err as { code?: string }).code === '42501' ? 403
       : code === 'rate_limited' ? 429
+      : code === 'not_found' ? 404
       : code === 'insufficient_stock' || code === 'insufficient_allocation' || code === 'duplicate' ? 409
       : code === 'server_error' ? 500 : 422;
     if (status === 500) logError(err, { requestId: c.get('requestId'), path: c.req.path });

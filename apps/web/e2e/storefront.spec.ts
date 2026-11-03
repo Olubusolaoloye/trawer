@@ -388,3 +388,43 @@ test('spreadsheet import: Excel file → columns matched → bad row reported �
   await page.getByRole('button', { name: 'Import 2 products' }).click();
   await expect(page.getByRole('heading', { name: '2 products added' })).toBeVisible();
 });
+
+test('special price: owner gives Chidi his own price (2FA asked), then removes it', async ({ page }) => {
+  await page.goto('/dashboard');
+  await signIn(page, '+2348030000001');
+  await page.getByText("You've taken today").waitFor();
+  await page.goto(`${page.url().replace(/\/$/, '')}/customers`);
+  await page.getByRole('link', { name: /Chidi Okafor/ }).first().click();
+  await expect(page.getByRole('heading', { name: 'Special prices' })).toBeVisible();
+  await page.getByRole('searchbox', { name: 'Find a product' }).fill('Kano Lace #001');
+  await page.getByRole('button', { name: 'Search' }).click();
+  await page.getByRole('button', { name: /Kano Lace #001/ }).first().click();
+  await page.getByLabel('Special price (₦ each)').fill('30000');
+  await page.getByRole('button', { name: /^Save for \d+ colour/ }).click();
+  const mfa = page.getByRole('dialog');
+  await mfa.getByRole('button', { name: 'Continue' }).click();
+  await mfa.getByLabel(/code/i).fill('000000');
+  await mfa.getByRole('button', { name: /verify/i }).click();
+  await expect(page.getByText('₦30,000').first()).toBeVisible();
+  // Clean up (the dev database is shared by every run).
+  const remove = page.getByRole('button', { name: /Remove special price for Kano Lace #001/ });
+  while (await remove.count()) { await remove.first().click(); await page.waitForTimeout(300); }
+  await expect(page.getByText('No special prices yet.')).toBeVisible();
+});
+
+test('barcode labels: pick a product, choose the sticker sheet, download a PDF', async ({ page }) => {
+  await page.goto('/dashboard');
+  await signIn(page, '+2348030000001');
+  await page.getByText("You've taken today").waitFor();
+  await page.goto(`${page.url().replace(/\/$/, '')}/products/labels`);
+  await page.getByRole('searchbox', { name: 'Find a product' }).fill('Kano Lace #001');
+  await page.getByRole('button', { name: 'Search' }).click();
+  await page.getByRole('button', { name: /Kano Lace #001/ }).first().click();
+  await expect(page.getByRole('heading', { name: /To print: [1-9]/ })).toBeVisible();
+  await page.getByLabel('Stickers already used on the first sheet').fill('3');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download labels (PDF)' }).click()]);
+  expect(download.suggestedFilename()).toMatch(/^labels-\d{4}-\d{2}-\d{2}\.pdf$/);
+  const fs = await import('node:fs/promises');
+  const bytes = await fs.readFile((await download.path())!);
+  expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
+});

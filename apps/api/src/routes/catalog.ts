@@ -4,7 +4,9 @@
  */
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { productInput, type ProductInput } from '@trawer/core/schemas';
+import { productInput, uuid, type ProductInput } from '@trawer/core/schemas';
+import { isValidEan13 } from '@trawer/core/barcode';
+import { LABEL_LAYOUTS, renderLabelsPdf, type LabelItem, type LabelLayout } from '../labels';
 import { dbErrorCode, many, one } from '../db';
 import { aiProvider, draft, photoForModel, type PriceHint } from '../ai';
 import { imageUrl, putImage } from '../storage';
@@ -133,4 +135,36 @@ catalogRoutes.post('/:bid/products/snap', async (c) => {
     categories: ctx.hints.map((h) => h.category).filter((x) => x !== 'Other'), priceHints: ctx.hints, exampleNames: ctx.names,
   });
   return c.json({ draft: result, image: { path: stored.path, url: imageUrl(stored.path, 640) } });
+});
+
+/** POST /api/biz/:bid/labels → PDF of barcode labels (copies per variant; optional price; skip used stickers). */
+catalogRoutes.post('/:bid/labels', async (c) => {
+  const input = await body(c, z.object({
+    items: z.array(z.object({ variant_id: uuid, copies: z.number().int().min(1).max(500) })).min(1).max(300),
+    layout: z.enum(Object.keys(LABEL_LAYOUTS) as [LabelLayout, ...LabelLayout[]]).default('a4-21'),
+    show_price: z.boolean().default(true),
+    skip: z.number().int().min(0).max(20).default(0),
+  }));
+  const total = input.items.reduce((n, i) => n + i.copies, 0);
+  if (total > 2100) throw new ApiError(422, 'too_many_labels');
+  const { rows, shop } = await asStaff(c, async (tx, b) => ({
+    shop: (await one<{ name: string }>(tx, `select name from businesses where id = $1`, [b]))!.name,
+    rows: await many<{ id: string; name: string; label: string | null; barcode: string | null; retail_price_kobo: number }>(tx, `
+      select v.id, p.name, nullif(concat_ws(' / ', v.colour, v.size), '') label, v.barcode, v.retail_price_kobo
+      from product_variants v join products p on p.id = v.product_id
+      where v.business_id = $1 and v.id = any($2::uuid[])`, [b, input.items.map((i) => i.variant_id)]),
+  }));
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const labels: LabelItem[] = [];
+  for (const it of input.items) {
+    const v = byId.get(it.variant_id);
+    if (!v || !v.barcode || !isValidEan13(v.barcode)) throw new ApiError(422, 'invalid_variants');
+    for (let k = 0; k < it.copies; k++) labels.push({ name: v.name, variant: v.label, barcode: v.barcode, price_kobo: input.show_price ? Number(v.retail_price_kobo) : null });
+  }
+  const pdf = await renderLabelsPdf(labels, input.layout, shop, input.layout === 'a4-21' ? input.skip : 0);
+  return c.body(new Uint8Array(pdf), 200, {
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': `attachment; filename="labels-${new Date().toISOString().slice(0, 10)}.pdf"`,
+    'Cache-Control': 'no-store',
+  });
 });
