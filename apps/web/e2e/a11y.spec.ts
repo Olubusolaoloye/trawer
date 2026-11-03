@@ -64,11 +64,18 @@ test('dashboard pages (owner)', async ({ page }) => {
   for (const [path, wait] of [
     ['orders', 'Orders'], ['products', 'Products'], ['customers', 'Customers'], ['debtors', 'Who owes you'], ['reports', 'Reports'],
     ['social', 'Instagram & Facebook'], ['design', 'Store design'], ['settings', 'Settings'], ['tills', 'Tills'],
+    ['products/import', 'Import products'], ['products/snap', 'Snap a product'],
   ] as const) {
     await page.goto(`${base}/${path}`);
     await page.getByRole('heading', { name: new RegExp(wait), level: 1 }).first().waitFor();
     await audit(page, path);
   }
+  // Import review step (table, issues list, counts).
+  await page.goto(`${base}/products/import`);
+  await page.getByLabel('Your list').fill('Ankara red - ₦12,500 x 3\nHello');
+  await page.getByRole('button', { name: 'Read my list' }).click();
+  await page.getByRole('heading', { name: "Rows we couldn't use as they are" }).waitFor();
+  await audit(page, 'import review');
 });
 
 test('every store theme stays accessible (owners can pick any of them)', async ({ page }) => {

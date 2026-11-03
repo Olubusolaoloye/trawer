@@ -11,7 +11,7 @@ export type AppEnv = { Variables: { claims: Claims | null; session: Session | nu
 export type Ctx = Context<AppEnv>;
 
 export class ApiError extends HTTPException {
-  constructor(status: 400 | 401 | 403 | 404 | 409 | 422 | 429 | 500, public readonly code: string, public readonly details?: unknown) {
+  constructor(status: 400 | 401 | 403 | 404 | 409 | 422 | 429 | 500 | 502 | 503, public readonly code: string, public readonly details?: unknown) {
     super(status, { message: code });
   }
 }

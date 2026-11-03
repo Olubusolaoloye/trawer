@@ -33,6 +33,7 @@ configure phone auth with Termii, and use Paystack test keys.
 - Behind a load balancer/CDN set `TRUST_PROXY_HOPS`.
 - Serve `apps/web/dist` through the API (it sends the pre-compressed `.br`/`.gz` files) or a CDN that honours them.
 - Deploy `apps/web/dist-ssr` next to `dist` (both come from `pnpm --filter @trawer/web build`): the API then server-renders store home pages (`apps/api/src/ssr.ts`). Without it, store homes fall back to the browser-rendered app. Store home HTML is personal (wholesale prices), so it is sent `Cache-Control: private` — don't put a shared cache in front of `/s/*` or shop subdomains' `/`.
+- Snap-to-upload: set `AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (server only; model `ANTHROPIC_MODEL`, default `claude-opus-5-5`), or `AI_PROVIDER=off` to hide drafting. `fake` is refused in production.
 - See SECURITY.md for the review and what each protection is tested by.
 
 ## Deliveries

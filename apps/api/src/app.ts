@@ -15,6 +15,7 @@ import { cronRoutes } from './routes/cron';
 import { trackRoutes } from './routes/track';
 import { docRoutes } from './routes/docs';
 import { dashboardRoutes } from './routes/dashboard';
+import { catalogRoutes } from './routes/catalog';
 import { socialBizRoutes, socialPublicRoutes } from './routes/social';
 import { reportRoutes } from './routes/reports';
 import { meRoutes } from './routes/me';
@@ -148,6 +149,7 @@ export function createApp() {
   app.route('/api/biz/:bid/reports', reportRoutes);
   app.route('/api/me', meRoutes);
   app.route('/api/client-errors', clientErrorRoutes);
+  app.route('/api/biz', catalogRoutes);
   app.route('/api/biz', dashboardRoutes);
   if (env.NODE_ENV !== 'production') app.route('/api/dev', devRoutes);
 

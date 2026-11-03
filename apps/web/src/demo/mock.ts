@@ -7,6 +7,7 @@
  * store design. Every other change is acknowledged but not kept. State lives in this tab only.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { colourHex, parseNairaToKobo } from '@trawer/core/import';
 
 type Role = 'anon' | 'buyer' | 'owner';
 interface Rec { status: number; body: any }
@@ -276,6 +277,42 @@ const routes: [string, RegExp, Handler][] = [
     if (r.json?.brand_colour) state.brand = r.json.brand_colour;
     save();
     return ok({ ok: true });
+  }],
+  ['POST', /^\/api\/biz\/([^/]+)\/products$/, (_r, m) => {
+    // Nothing is saved: show an existing sample product so the flow still ends on a product page.
+    toast('Demo: product "saved", but nothing is stored for real. Here is a sample product.');
+    const key = Object.keys(data.fixtures).find((k) => new RegExp(`^owner\\|/api/biz/${m[1]}/products/[0-9a-f-]{36}$`).test(k));
+    return ok({ id: key ? key.split('/').pop() : uuid() }, 201);
+  }],
+  ['POST', /^\/api\/biz\/([^/]+)\/import$/, (r) => {
+    const products: { name?: string; variants?: unknown[] }[] = r.json?.products ?? [];
+    const dry = r.json?.dry_run !== false;
+    const report = products.map((p, index) => ({ index, name: String(p.name ?? ''), variants: p.variants?.length ?? 0, status: dry ? 'new' : 'created', messages: [] as string[] }));
+    if (!dry) toast(`Demo: ${report.length} products checked and "added", but nothing is saved for real`);
+    const n = report.length;
+    return ok({ report, summary: { new: dry ? n : 0, created: dry ? 0 : n, duplicate: 0, skipped: 0, invalid: 0, failed: 0 } });
+  }],
+  ['POST', /^\/api\/biz\/([^/]+)\/products\/snap$/, (r) => {
+    // Demo drafter (the real one asks Claude): reads colours and a price from the note.
+    const f = r.form?.get('file');
+    const note = String(r.form?.get('note') ?? '');
+    const lower = note.toLowerCase();
+    const colours = ['red', 'blue', 'green', 'gold', 'black', 'white', 'wine', 'purple', 'orange', 'pink', 'yellow', 'navy', 'cream'].filter((c) => new RegExp(`\\b${c}\\b`).test(lower));
+    const token = /₦\s?\d[\d,]*(?:\.\d+)?|\b\d+(?:\.\d+)?k\b/i.exec(note)?.[0];
+    const kobo = parseNairaToKobo(token);
+    const cats = recorded(`/api/store/balogun`)?.body?.categories?.map((c: any) => c.category) ?? [];
+    const category = cats.find((c: string) => lower.includes(c.toLowerCase())) ?? null;
+    const name = note.split(/[,\n]/)[0]!.replace(token ?? '\u0000', '').replace(/\s+/g, ' ').trim();
+    return ok({
+      image: { path: `demo/${uuid()}.webp`, url: f instanceof Blob ? URL.createObjectURL(f) : null },
+      draft: {
+        name: name ? name.replace(/^\w/, (m) => m.toUpperCase()) : 'New product', category, description: category ? `${category}, drafted from your photo.` : '',
+        base_unit: 'piece', pack: null,
+        variants: colours.length ? colours.map((c) => ({ colour: c.replace(/^\w/, (m) => m.toUpperCase()), colour_hex: colourHex(c), size: null })) : [{ colour: null, colour_hex: null, size: null }],
+        suggested_price_naira: kobo ? kobo / 100 : null, price_reason: kobo ? 'From your note.' : 'Add a price.',
+        check: ['Demo draft: the live app asks Claude to read the photo itself.'],
+      },
+    });
   }],
   ['POST', /^\/api\/biz\/([^/]+)\/uploads$/, (r) => {
     const f = r.form?.get('file');

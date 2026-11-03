@@ -37,6 +37,18 @@ export class Client {
     return { status: res.status, body, headers: res.headers };
   }
 
+  /** Multipart upload (cookies + CSRF header like the browser). */
+  async upload<T = any>(path: string, form: FormData): Promise<{ status: number; body: T }> {
+    const res = await app.request(path, {
+      method: 'POST', body: form,
+      headers: { host: this.host, 'x-forwarded-for': this.ip, 'x-trawer': '1', cookie: [...this.jar].map(([k, v]) => `${k}=${v}`).join('; ') },
+    });
+    const text = await res.text();
+    let body: any = text;
+    try { body = JSON.parse(text); } catch { /* not json */ }
+    return { status: res.status, body };
+  }
+
   get = <T = any>(p: string) => this.req<T>('GET', p);
   post = <T = any>(p: string, j: unknown = {}) => this.req<T>('POST', p, j);
   put = <T = any>(p: string, j: unknown = {}) => this.req<T>('PUT', p, j);

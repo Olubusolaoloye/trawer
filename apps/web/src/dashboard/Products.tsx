@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router';
-import { ImagePlus, Plus, Send, Trash2 } from 'lucide-react';
+import { Link, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
+import { Camera, FileSpreadsheet, ImagePlus, Plus, Send, Sparkles, Trash2 } from 'lucide-react';
 import { nairaToKobo } from '@trawer/core/money';
 import { api } from '../lib/api';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
@@ -9,12 +9,16 @@ import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Select, Spinner, T
 import { t } from '../i18n';
 import { useBiz } from './context';
 import { useMfaRetry } from './MfaGate';
+import { ImportProducts } from './ImportProducts';
+import { SnapProduct, type SnapResult } from './SnapProduct';
 
 export default function Products() {
   return (
     <Routes>
       <Route index element={<ProductList />} />
       <Route path="new" element={<NewProduct />} />
+      <Route path="import" element={<ImportProducts />} />
+      <Route path="snap" element={<SnapProduct />} />
       <Route path=":pid" element={<ProductDetail />} />
     </Routes>
   );
@@ -32,7 +36,13 @@ function ProductList() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-display text-[30px] font-extrabold lg:text-[34px]">{t('dash.products')}</h1>
-        {b.can('products.draft') && <Link to={`${b.base}/products/new`}><Button><Plus className="size-5" aria-hidden />{t('dash.newProduct')}</Button></Link>}
+        {b.can('products.draft') && (
+          <div className="flex flex-wrap gap-2">
+            <Link to={`${b.base}/products/snap`} className="press inline-flex min-h-12 items-center gap-2 rounded-xl bg-ink px-4 font-bold text-paper"><Camera className="size-5" aria-hidden />{t('snap.button')}</Link>
+            <Link to={`${b.base}/products/import`} className="press inline-flex min-h-12 items-center gap-2 rounded-xl border-[1.5px] border-ink/85 bg-surface px-4 font-bold"><FileSpreadsheet className="size-5" aria-hidden />{t('imp.button')}</Link>
+            <Link to={`${b.base}/products/new`} className="press inline-flex min-h-12 items-center gap-2 rounded-xl bg-green px-4 font-bold text-white"><Plus className="size-5" aria-hidden />{t('dash.newProduct')}</Link>
+          </div>
+        )}
       </div>
       <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); setParams(q ? { q } : {}); }}>
         <Input type="search" placeholder="Name, SKU or barcode" aria-label={t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} />
@@ -93,8 +103,19 @@ export async function uploadImage(businessId: string, file: File): Promise<{ pat
 function NewProduct() {
   const b = useBiz();
   const navigate = useNavigate();
-  const [p, setP] = useState({ name: '', category: '', description: '', base_unit: 'piece', pack_unit: 'carton', pack_factor: '' });
-  const [rows, setRows] = useState<VariantRow[]>([emptyRow()]);
+  // Opened from snap-to-upload: start from the AI draft (the owner checks and edits everything).
+  const snap = (useLocation().state as { snap?: SnapResult } | null)?.snap;
+  const d = snap?.draft;
+  const [p, setP] = useState(() => d
+    ? { name: d.name, category: d.category ?? '', description: d.description, base_unit: d.base_unit, pack_unit: d.pack?.unit ?? 'carton', pack_factor: d.pack ? String(d.pack.factor) : '' }
+    : { name: '', category: '', description: '', base_unit: 'piece', pack_unit: 'carton', pack_factor: '' });
+  const [rows, setRows] = useState<VariantRow[]>(() => d
+    ? d.variants.map((v, i) => ({
+        ...emptyRow(), colour: v.colour ?? '', colour_hex: v.colour_hex ?? '#9CA3AF', size: v.size ?? '',
+        price: d.suggested_price_naira ? String(d.suggested_price_naira) : '',
+        ...(i === 0 && snap ? { image_path: snap.image.path, image_url: snap.image.url ?? undefined } : {}),
+      }))
+    : [emptyRow()]);
   const [publish, setPublish] = useState(b.can('products.manage'));
   const upd = (i: number, patch: Partial<VariantRow>) => setRows((r) => r.map((x, j) => (j === i ? { ...x, ...patch } : x)));
   const upload = useMutation(async (i: number, file: File) => {
@@ -105,7 +126,7 @@ function NewProduct() {
     const r = await api<{ id: string }>(`/api/biz/${b.business.id}/products`, { json: {
       name: p.name, category: p.category || null, description: p.description, base_unit: p.base_unit,
       packs: p.pack_factor ? [{ unit: p.pack_unit, factor: Number(p.pack_factor) }] : [],
-      status: publish ? 'active' : 'draft', source: 'manual',
+      status: publish ? 'active' : 'draft', source: snap ? 'snap' : 'manual', ...(snap ? { ai_draft: snap.draft } : {}),
       variants: rows.map((r) => ({
         colour: r.colour || null, colour_hex: r.colour ? r.colour_hex : null, size: r.size || null,
         retail_price_kobo: nairaToKobo(r.price || '0'), cost_kobo: r.cost ? nairaToKobo(r.cost) : null,
@@ -120,6 +141,13 @@ function NewProduct() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="font-display text-[30px] font-extrabold">{t('dash.newProduct')}</h1>
 </div>
+      {d && (
+        <section className="space-y-1.5 rounded-2xl border border-indigo/20 bg-indigo-50 p-4 text-sm text-indigo" aria-label={t('snap.draftedTitle')}>
+          <p className="flex items-center gap-2 font-bold"><Sparkles className="size-5" aria-hidden />{t('snap.draftedTitle')}</p>
+          <p>{t('snap.draftedBody')}{d.price_reason ? ` ${t('snap.priceFrom')} ${d.price_reason}` : ''}</p>
+          {d.check.length > 0 && <ul className="list-disc space-y-0.5 pl-5">{d.check.map((c) => <li key={c}>{c}</li>)}</ul>}
+        </section>
+      )}
       <Card className="space-y-4">
         <Field label="Product name" htmlFor="pn"><Input id="pn" required value={p.name} onChange={(e) => setP({ ...p, name: e.target.value })} /></Field>
         <div className="grid grid-cols-2 gap-3">

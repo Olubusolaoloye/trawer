@@ -210,7 +210,7 @@ export function ProductCard({ p, i, design, wholesale }: { p: Item; i: number; d
   const price = p.price_kobo != null && (
     <p className={cx('num font-display font-extrabold leading-tight', compact ? 'text-[15px]' : 'text-lg', design.card === 'overlay' ? '' : wholesale ? 'text-indigo' : 'text-accent-text')}>
       {formatNaira(p.price_kobo)}
-      {p.retail_price_kobo != null && p.retail_price_kobo > p.price_kobo && <s className="ml-1.5 font-sans text-xs font-medium opacity-70">{formatNaira(p.retail_price_kobo)}</s>}
+      {p.retail_price_kobo != null && p.retail_price_kobo > p.price_kobo && <s className={cx('ml-1.5 font-sans text-xs font-medium', design.card === 'overlay' ? 'text-white/85' : 'text-muted')}>{formatNaira(p.retail_price_kobo)}</s>}
     </p>
   );
   const swatches = p.swatches.length > 1 && !compact && (
@@ -219,7 +219,7 @@ export function ProductCard({ p, i, design, wholesale }: { p: Item; i: number; d
       {p.swatches.length > 4 && <span className="text-[11px] opacity-70">+{p.swatches.length - 4}</span>}
     </span>
   );
-  const name = <h3 className={cx('line-clamp-2 font-bold leading-snug', compact ? 'text-[13px]' : 'text-[15px]', !p.in_stock && 'opacity-60')}>{p.name}</h3>;
+  const name = <h3 className={cx('line-clamp-2 font-bold leading-snug', compact ? 'text-[13px]' : 'text-[15px]', !p.in_stock && 'text-muted')}>{p.name}</h3>;
   const sub = !compact && (p.category || swatches) && (
     <p className="flex items-center gap-2 text-xs text-muted">{p.category && <span className="truncate">{p.category}</span>}{swatches}</p>
   );

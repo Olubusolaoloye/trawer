@@ -335,3 +335,56 @@ test('server-rendered store home wakes up without refetching and stays interacti
   await expect(page.locator('#products-h')).toHaveText('Ankara');
   expect(errors).toEqual([]); // includes React hydration mismatch reports
 });
+
+test('new staff member adds 20 products from a pasted WhatsApp list in well under 10 minutes', async ({ page }) => {
+  const started = Date.now();
+  await page.goto('/dashboard');
+  await signIn(page, '+2348030000001');
+  await page.getByText("You've taken today").waitFor();
+  const base = page.url().replace(/\/$/, '');
+  await page.goto(`${base}/products/import`);
+  const stamp = Date.now() % 100000;
+  const list = Array.from({ length: 20 }, (_, i) => `${i + 1}. Import test ${stamp} item ${i + 1} ${['red', 'blue', 'gold', 'green'][i % 4]} - ₦${(5 + i) * 1000} x ${10 + i}`).join('\n');
+  await page.getByLabel('Your list').fill(list);
+  await page.getByRole('button', { name: 'Read my list' }).click();
+  await expect(page.getByRole('button', { name: 'Import 20 products' })).toBeVisible();
+  await page.getByRole('button', { name: 'Import 20 products' }).click();
+  await expect(page.getByRole('heading', { name: '20 products added' })).toBeVisible();
+  expect(Date.now() - started).toBeLessThan(10 * 60_000);
+});
+
+test('snap-to-upload: photo + note → drafted product form → saved with the photo', async ({ page }) => {
+  await page.goto('/dashboard');
+  await signIn(page, '+2348030000001');
+  await page.getByText("You've taken today").waitFor();
+  const base = page.url().replace(/\/$/, '');
+  await page.goto(`${base}/products/snap`);
+  // A small red JPEG is enough for the sandbox drafter.
+  const jpeg = Buffer.from('/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAQABADASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAABQf/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCIAAK0/9k=', 'base64');
+  await page.getByLabel('Take or choose a photo').setInputFiles({ name: 'snap.jpg', mimeType: 'image/jpeg', buffer: jpeg });
+  const note = `Snap test ${Date.now() % 100000}, ankara in red and blue, 15k`;
+  await page.getByLabel(/Tell us about it/).fill(note);
+  await page.getByRole('button', { name: 'Draft my product' }).click();
+  await expect(page.getByText('Drafted from your photo')).toBeVisible();
+  await expect(page.getByLabel('Product name')).toHaveValue(note.split(',')[0]!);
+  await expect(page.getByLabel(/^Price ₦/).first()).toHaveValue('15000');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page).toHaveURL(/\/products\/[0-9a-f-]{36}$/);
+});
+
+test('spreadsheet import: Excel file → columns matched → bad row reported → products added', async ({ page }) => {
+  await page.goto('/dashboard');
+  await signIn(page, '+2348030000001');
+  await page.getByText("You've taken today").waitFor();
+  await page.goto(`${page.url().replace(/\/$/, '')}/products/import`);
+  await page.getByLabel('Choose a file').setInputFiles(new URL('./fixtures/stock.xlsx', import.meta.url).pathname);
+  await expect(page.getByRole('heading', { name: 'Match your columns' })).toBeVisible();
+  await expect(page.getByLabel('Product name *')).toHaveValue('0');
+  await expect(page.getByLabel('Price (₦) *')).toHaveValue('2');
+  // The dev database keeps earlier runs' products: add them again rather than skip as duplicates.
+  await page.getByLabel(/Skip products already in my shop/).uncheck();
+  await page.getByRole('button', { name: 'Check my products' }).click();
+  await expect(page.getByText(/Row 5 · “call me” is not a price/)).toBeVisible();
+  await page.getByRole('button', { name: 'Import 2 products' }).click();
+  await expect(page.getByRole('heading', { name: '2 products added' })).toBeVisible();
+});

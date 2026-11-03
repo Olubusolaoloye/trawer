@@ -18,7 +18,7 @@ afterAll(async () => { await closeLive(); await pool.end(); });
 describe('storefront design', () => {
   it('a new shop gets the default design on its public store', async () => {
     const store = await (await app.request(`/api/store/${slug}`)).json() as any;
-    expect(store.design).toMatchObject({ theme: 'market', header: 'brand', hero: { enabled: true, image_url: null } });
+    expect(store.design).toMatchObject({ theme: 'fresh', accent: 'coral', header: 'brand', hero: { enabled: true, image_url: null } });
     expect(store.business.storefront).toBeUndefined();
   });
 

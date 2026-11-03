@@ -47,6 +47,15 @@ Each item says what protects it and which automated test proves it. Tests run on
 | Personal pages aren't cached publicly | `Cache-Control: private, no-cache`, `Vary: Cookie` | `api ssr`, e2e |
 | Sessions stay valid | A session refreshed while rendering is passed on to the browser | manual check (refresh-token-only request) |
 
+## Product import and AI drafting
+
+| Check | How | Proof |
+|---|---|---|
+| AI key stays on the server | `ANTHROPIC_API_KEY` is read only by `apps/api/src/ai.ts`; the browser never calls the AI; bundle scan in `build` | `scripts/check-bundle.mjs` |
+| Owner notes can't steer the model | The note is fenced in `<owner_note>` and the system prompt says it is information, not instructions; the output is a fixed schema, then clamped (`cleanDraft`) and only ever pre-fills a form the owner confirms | `api ai` |
+| Only staff, rate-limited | Snap and import need staff of that shop; `ai_draft` and `import` rate limits per user and IP | `api catalog` |
+| Imports can't corrupt a shop | Every product is validated with the same schema as manual entry; each is saved in its own savepoint; SKU clashes refused; max 1000 per request | `api catalog`, `core import` |
+
 ## Privacy (NDPA 2023)
 
 | Right | Where | Proof |

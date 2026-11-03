@@ -20,7 +20,7 @@ function bid(c: Ctx): string {
 }
 
 /** Run as the staff user, after checking they belong to the business (RLS still applies). */
-async function asStaff<T>(c: Ctx, fn: (tx: Parameters<Parameters<typeof withUser>[1]>[0], businessId: string) => Promise<T>): Promise<T> {
+export async function asStaff<T>(c: Ctx, fn: (tx: Parameters<Parameters<typeof withUser>[1]>[0], businessId: string) => Promise<T>): Promise<T> {
   const claims = requireUser(c);
   const businessId = bid(c);
   return withUser(claims, async (tx) => {
@@ -277,8 +277,10 @@ dashboardRoutes.get('/:bid/products', (c) => asStaff(c, async (tx, b) => {
 }));
 
 dashboardRoutes.post('/:bid/products', async (c) => {
-  const input = await body(c, productInput);
-  return asStaff(c, async (tx, b) => c.json({ id: await createProduct(tx, b, input) }, 201));
+  // Snap-to-upload sends back the AI draft it started from, kept with the product for quality review.
+  const input = await body(c, productInput.extend({ ai_draft: z.record(z.string(), z.unknown()).optional() }));
+  const { ai_draft, ...product } = input;
+  return asStaff(c, async (tx, b) => c.json({ id: await createProduct(tx, b, product, { aiDraft: product.source === 'snap' ? ai_draft : undefined }) }, 201));
 });
 
 dashboardRoutes.get('/:bid/products/:pid', (c) => asStaff(c, async (tx, b) => {

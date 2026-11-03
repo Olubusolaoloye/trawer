@@ -27,11 +27,10 @@ const schema = z.object({
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   TERMII_API_KEY: z.string().optional(),
   TERMII_SENDER_ID: z.string().default('Trawer'),
+  // Snap-to-upload drafts: 'anthropic' (Claude, needs ANTHROPIC_API_KEY), 'fake' (dev/tests) or 'off'.
+  AI_PROVIDER: z.enum(['anthropic', 'fake', 'off']).default('fake'),
   ANTHROPIC_API_KEY: z.string().optional(),
-  ANTHROPIC_MODEL: z.string().default('claude-sonnet-5-5'),
-  STT_API_URL: z.string().optional(),
-  STT_API_KEY: z.string().optional(),
-  STT_MODEL: z.string().default('whisper-1'),
+  ANTHROPIC_MODEL: z.string().default('claude-opus-5-5'),
   CRON_SECRET: z.string().min(16).default('dev-cron-secret-change-me'),
   // How many reverse proxies (load balancer, CDN) sit in front of the API. 0 = clients connect directly,
   // so X-Forwarded-For is ignored (anyone can type it). N = use the address the N-th proxy saw.
@@ -51,6 +50,8 @@ function load() {
     if (env.AUTH_MODE === 'dev') throw new Error('AUTH_MODE=dev is not allowed in production');
     if (env.PAYMENT_PROVIDER === 'fake') throw new Error('PAYMENT_PROVIDER=fake is not allowed in production');
     if (env.CRON_SECRET.startsWith('dev-')) throw new Error('Set CRON_SECRET in production');
+    if (env.AI_PROVIDER === 'fake') throw new Error('AI_PROVIDER=fake is not allowed in production (use anthropic or off)');
+    if (env.AI_PROVIDER === 'anthropic' && !env.ANTHROPIC_API_KEY) throw new Error('AI_PROVIDER=anthropic needs ANTHROPIC_API_KEY');
     if (env.SOCIAL_PROVIDER === 'meta' && (!env.META_APP_ID || !env.META_APP_SECRET)) throw new Error('SOCIAL_PROVIDER=meta needs META_APP_ID and META_APP_SECRET');
   }
   return env;
