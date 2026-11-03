@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 
-import { CARDS, DENSITIES, FONTS, HEADERS, RADII, SECTION_IDS, THEMES, type SectionId } from './storefront-theme';
+import { ACCENTS, CARDS, DENSITIES, FONTS, HEADERS, RADII, SECTION_IDS, THEMES, type SectionId } from './storefront-theme';
 
 export * from './storefront-theme';
 
@@ -14,6 +14,7 @@ const handle = z.string().trim().max(60).regex(/^[A-Za-z0-9._-]*$/, 'handle');
 
 export const storefrontSchema = z.object({
   theme: z.enum(THEMES).default('market'),
+  accent: z.enum(ACCENTS).default('coral'),
   font: z.enum(FONTS).default('grotesque'),
   radius: z.enum(RADII).default('soft'),
   header: z.enum(HEADERS).default('brand'),

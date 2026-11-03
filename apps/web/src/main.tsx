@@ -25,6 +25,17 @@ const ready = Promise.all([DEMO ? import('./demo/mock').then((m) => m.install())
 const Router = DEMO ? HashRouter : BrowserRouter;
 const DemoBar = DEMO ? lazy(() => import('./demo/DemoBar')) : null;
 
+// After a deploy, a tab opened earlier may ask for script files that no longer exist: reload once
+// to pick up the new version instead of showing an error.
+window.addEventListener('vite:preloadError', (e) => {
+  try {
+    if (sessionStorage.getItem('trawer:reloaded') === location.pathname) return;
+    sessionStorage.setItem('trawer:reloaded', location.pathname);
+  } catch { return; }
+  e.preventDefault();
+  location.reload();
+});
+
 /** Data a server-rendered page was made with (a non-executable JSON block; see the API's ssr.ts). */
 function serverData(): Record<string, unknown> | null {
   const el = document.getElementById('ssr-data');

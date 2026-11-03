@@ -9,6 +9,7 @@ import { applyStoreTheme, type Storefront } from '../lib/theme';
 import { cx } from '../lib/format';
 import { Empty, ProductGridSkeleton, Skeleton } from '../components/ui';
 import { t } from '../i18n';
+import { StoreTabBar } from './kit';
 
 export { inkFor } from '../lib/theme';
 
@@ -69,7 +70,10 @@ function StoreShell() {
   const [params] = useSearchParams();
   const [q, setQ] = useState(params.get('q') ?? '');
   const isHome = location.pathname === href('/') || location.pathname === `${href('/')}/`;
-  const fullBleed = /\/(p|orders)\//.test(location.pathname) || /\/(cart|checkout)$/.test(location.pathname);
+  // Only the home page has the shop header + footer; inner pages draw their own header band.
+  const fullBleed = !isHome;
+  const rest = isHome ? '/' : location.pathname.slice(href('/').length).replace(/\/$/, '');
+  const tabbed = isHome || ['/search', '/orders', '/account'].includes(rest.startsWith('/') ? rest : `/${rest}`);
 
   useEffect(() => {
     if (!data) return;
@@ -107,14 +111,13 @@ function StoreShell() {
                   {b.address && <span className={cx('truncate text-[13px]', onBrand ? 'opacity-85' : 'text-muted')}>{b.address}</span>}
                 </span>
               </Link>
-              <div className="flex gap-2 sm:hidden"><HeaderIcons onBrand={onBrand} count={count} /></div>
             </div>
-            <form role="search" onSubmit={(e) => { e.preventDefault(); navigate(`${href('/')}${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''}`); }}
+            <form role="search" data-field onSubmit={(e) => { e.preventDefault(); navigate(`${href('/search')}${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''}`); }}
               className={cx('flex min-h-12 items-center gap-2.5 rounded-xl px-4 text-muted transition-shadow focus-within:ring-4 sm:w-[min(420px,40vw)]',
                 onBrand ? 'bg-surface shadow-[0_8px_24px_-14px_rgb(0_0_0/0.45)] focus-within:ring-white/35' : 'border border-line bg-paper focus-within:ring-ink/10')}>
               <Search className="size-5 shrink-0" aria-hidden />
               <input type="search" aria-label={t('common.search')} placeholder={t('store.searchPlaceholder')} value={q} onChange={(e) => setQ(e.target.value)}
-                className="min-w-0 flex-1 bg-transparent text-base font-medium text-ink outline-none placeholder:text-muted" />
+                className="min-w-0 flex-1 bg-transparent text-base font-medium text-ink outline-none placeholder:text-muted focus-visible:outline-none" />
             </form>
             <div className="hidden gap-2 sm:flex"><HeaderIcons onBrand={onBrand} count={count} /></div>
           </div>
@@ -128,10 +131,11 @@ function StoreShell() {
           )}
         </header>
       )}
-      <main key={location.pathname} className={cx('rise flex-1', !fullBleed && 'mx-auto w-full max-w-6xl px-4 pb-28 pt-5')}>
+      <main key={location.pathname} className={cx('rise flex flex-1 flex-col', !fullBleed && 'mx-auto w-full max-w-6xl px-4 pb-28 pt-5', fullBleed && tabbed && 'pb-28 sm:pb-8')}>
         <Outlet />
       </main>
       {!fullBleed && <StoreFooter data={data} padForCart={isHome && count > 0} />}
+      {tabbed && !PREVIEW && <StoreTabBar count={count} />}
     </div>
   );
 }
@@ -160,7 +164,7 @@ function StoreFooter({ data, padForCart }: { data: StoreInfo; padForCart: boolea
   ].filter(Boolean) as { href: string; label: string; icon: typeof Camera }[];
   const hasAbout = d.about || links.length || b.address;
   return (
-    <footer className={cx('border-t border-line/70 bg-surface', padForCart ? 'pb-28' : 'pb-8')}>
+    <footer className={cx('border-t border-line/70 bg-surface', padForCart ? 'pb-44 sm:pb-28' : 'pb-28 sm:pb-8')}>
       {hasAbout && (
         <div className="mx-auto grid max-w-6xl gap-6 px-4 pt-8 sm:grid-cols-[1.4fr_1fr]">
           <div className="space-y-2">

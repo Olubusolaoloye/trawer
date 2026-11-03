@@ -17,6 +17,7 @@ const ProductPage = lazy(() => import('./store/ProductPage').then((m) => ({ defa
 const CheckoutPage = lazy(() => import('./store/CheckoutPage').then((m) => ({ default: m.CheckoutPage })));
 const AccountPage = lazy(() => import('./store/AccountPage').then((m) => ({ default: m.AccountPage })));
 const OrdersPage = lazy(() => import('./store/OrdersPage').then((m) => ({ default: m.OrdersPage })));
+const SearchPage = lazy(() => import('./store/SearchPage').then((m) => ({ default: m.SearchPage })));
 const OrderPage = lazy(() => import('./store/OrderPage').then((m) => ({ default: m.OrderPage })));
 
 function storeRoutes() {
@@ -25,6 +26,7 @@ function storeRoutes() {
       <Route index element={<Catalogue />} />
       <Route path="p/:id" element={lazyEl(<ProductPage />)} />
       <Route path="cart" element={<CartPage />} />
+      <Route path="search" element={lazyEl(<SearchPage />)} />
       <Route path="checkout" element={lazyEl(<CheckoutPage />)} />
       <Route path="account" element={lazyEl(<AccountPage />)} />
       <Route path="account/privacy" element={lazyEl(<PrivacyPage />)} />

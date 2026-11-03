@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { ArrowRight, Layers } from 'lucide-react';
+import { ArrowRight, Check, Layers, Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import { takeEarly } from '../lib/early';
-import { peek } from '../lib/use-api';
+import { peek, useApi } from '../lib/use-api';
 import { formatNaira, cx } from '../lib/format';
 import { useStoreLocation } from '../lib/store-context';
-import { Button, Empty, ProductGridSkeleton, fabricStyle } from '../components/ui';
+import { Button, Empty, ProductGridSkeleton, Skeleton, fabricStyle } from '../components/ui';
 import { t } from '../i18n';
 import { useStore, type StoreDesign, type StoreInfo } from './StoreLayout';
 import { ReorderCard } from './ReorderStrip';
 import { useQuote } from './CartPage';
+import { BottomSheet, Stepper } from './kit';
+import { BuyOptions, BuyPrice, StockLine, useBuy, type ProductData } from './buy';
 
 export interface Item {
   id: string; name: string; category: string | null; image: string | null;
@@ -109,7 +111,7 @@ export function Catalogue() {
       {d.sections.filter((s) => s.on || s.id === 'products' || (s.id === 'categories' && browsing)).map((s) => sections[s.id] ? <div key={s.id}>{sections[s.id]}</div> : null)}
 
       {count > 0 && (
-        <Link to={href('/cart')} viewTransition className="glass-ink rise fixed inset-x-3.5 bottom-4 z-30 mx-auto flex min-h-15 max-w-xl items-center justify-between rounded-[20px] px-5 text-paper shadow-float">
+        <Link to={href('/cart')} viewTransition className="glass-ink rise fixed inset-x-3.5 bottom-[5.6rem] z-30 sm:bottom-4 mx-auto flex min-h-15 max-w-xl items-center justify-between rounded-[20px] px-5 text-paper shadow-float">
           <span className="flex flex-col">
             <span className="text-[13px] text-paper/75">{t('cart.itemsCount', { n: count })}</span>
             <b className="num font-display text-xl">{quote ? formatNaira(quote.subtotal_kobo) : '…'}</b>
@@ -190,53 +192,116 @@ export function ProductGrid({ items, design, wholesale }: { items: Item[]; desig
   );
 }
 
-function ProductCard({ p, i, design, wholesale }: { p: Item; i: number; design: StoreDesign; wholesale: boolean }) {
+/** Product card: photo, name, price, and a quick-add button (opens the options sheet). */
+export function ProductCard({ p, i, design, wholesale }: { p: Item; i: number; design: StoreDesign; wholesale: boolean }) {
   const { href } = useStoreLocation();
+  const [quick, setQuick] = useState(false);
   const compact = design.density === 'compact';
+  const to = href(`/p/${p.id}`);
   const img = (
     <>
-      {p.image && <img src={p.image} alt="" width={400} height={390} loading={i < 4 ? 'eager' : 'lazy'} decoding="async" fetchPriority={i < 2 ? 'high' : undefined}
+      {p.image && <img src={p.image} alt="" width={400} height={400} loading={i < 4 ? 'eager' : 'lazy'} decoding="async" fetchPriority={i < 2 ? 'high' : undefined}
         className={cx('size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]', !p.in_stock && 'opacity-50 grayscale')} />}
       {!p.in_stock
-        ? <span className="absolute left-2.5 top-2.5 rounded-full bg-ink px-2.5 py-0.5 text-[11px] font-extrabold text-paper">{t('store.soldOutCaps')}</span>
-        : p.few_left ? <span className="absolute left-2.5 top-2.5 rounded-full bg-gold px-2.5 py-0.5 text-[11px] font-extrabold text-[#0E1411]">{t('store.fewLeft', { n: p.few_left })}</span> : null}
+        ? <span className="absolute left-2 top-2 rounded-full bg-ink px-2.5 py-0.5 text-[11px] font-extrabold text-paper">{t('store.soldOutCaps')}</span>
+        : p.few_left ? <span className="absolute left-2 top-2 rounded-full bg-gold px-2.5 py-0.5 text-[11px] font-extrabold text-[#0E1411]">{t('store.fewLeft', { n: p.few_left })}</span> : null}
     </>
   );
   const price = p.price_kobo != null && (
-    <p className={cx('num font-display font-extrabold', compact ? 'text-[15px]' : 'text-[19px]', wholesale && design.card !== 'overlay' && 'text-indigo')}>
+    <p className={cx('num font-display font-extrabold leading-tight', compact ? 'text-[15px]' : 'text-lg', design.card === 'overlay' ? '' : wholesale ? 'text-indigo' : 'text-accent-text')}>
       {formatNaira(p.price_kobo)}
       {p.retail_price_kobo != null && p.retail_price_kobo > p.price_kobo && <s className="ml-1.5 font-sans text-xs font-medium opacity-70">{formatNaira(p.retail_price_kobo)}</s>}
     </p>
   );
   const swatches = p.swatches.length > 1 && !compact && (
-    <div className="mt-auto flex items-center gap-1.5 pt-1" aria-label={p.swatches.map((s) => s.colour).join(', ')}>
-      {p.swatches.slice(0, 4).map((s) => <span key={s.colour} title={s.colour} className={cx('size-3.5 rounded-full ring-1 ring-black/10', !s.in_stock && 'opacity-30')} style={{ background: s.hex ?? '#d6d3d1' }} />)}
-      {p.swatches.length > 4 && <span className="text-xs opacity-70">+{p.swatches.length - 4}</span>}
-    </div>
+    <span className="flex items-center gap-1" aria-label={p.swatches.map((s) => s.colour).join(', ')}>
+      {p.swatches.slice(0, 4).map((s) => <span key={s.colour} title={s.colour} className={cx('size-3 rounded-full ring-1 ring-black/10', !s.in_stock && 'opacity-30')} style={{ background: s.hex ?? '#d6d3d1' }} />)}
+      {p.swatches.length > 4 && <span className="text-[11px] opacity-70">+{p.swatches.length - 4}</span>}
+    </span>
   );
-  const name = <h3 className={cx('line-clamp-2 font-semibold leading-snug', compact ? 'text-[13px]' : 'text-sm', !p.in_stock && 'opacity-60')}>{p.name}</h3>;
+  const name = <h3 className={cx('line-clamp-2 font-bold leading-snug', compact ? 'text-[13px]' : 'text-[15px]', !p.in_stock && 'opacity-60')}>{p.name}</h3>;
+  const sub = !compact && (p.category || swatches) && (
+    <p className="flex items-center gap-2 text-xs text-muted">{p.category && <span className="truncate">{p.category}</span>}{swatches}</p>
+  );
+  const add = p.in_stock && (
+    <button type="button" onClick={() => setQuick(true)} aria-label={t('store.quickAdd', { name: p.name })}
+      className={cx('press flex shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-[0_8px_16px_-8px_var(--color-accent)]', compact ? 'size-8' : 'size-10')}>
+      <Plus className={compact ? 'size-4' : 'size-5'} strokeWidth={2.6} aria-hidden />
+    </button>
+  );
+  const sheet = quick && <QuickAdd id={p.id} name={p.name} onClose={() => setQuick(false)} />;
 
   if (design.card === 'overlay') {
     return (
-      <Link to={href(`/p/${p.id}`)} viewTransition className="store-card group lift relative flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-card bg-line-soft text-white shadow-card"
-        style={p.image ? undefined : fabricStyle(p.id, p.swatches[0]?.hex)}>
+      <div className="store-card group lift relative flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-card bg-line-soft text-white shadow-card" style={p.image ? undefined : fabricStyle(p.id, p.swatches[0]?.hex)}>
         <div className="absolute inset-0">{img}</div>
-        <div className="relative space-y-0.5 bg-gradient-to-t from-black/80 via-black/45 to-transparent p-3 pt-10">{name}{price}</div>
-      </Link>
+        <div className="relative flex items-end gap-2 bg-gradient-to-t from-black/85 via-black/50 to-transparent p-3 pt-12">
+          <Link to={to} viewTransition className="min-w-0 flex-1 space-y-0.5 after:absolute after:inset-0">{name}{price}</Link>
+          <div className="relative">{add}</div>
+        </div>
+        {sheet}
+      </div>
     );
   }
   if (design.card === 'minimal') {
     return (
-      <Link to={href(`/p/${p.id}`)} viewTransition className="group flex h-full flex-col gap-2">
-        <div className="store-card relative aspect-[4/4.6] overflow-hidden rounded-card bg-line-soft" style={p.image ? undefined : fabricStyle(p.id, p.swatches[0]?.hex)}>{img}</div>
-        <div className="flex flex-1 flex-col gap-0.5 px-0.5">{name}{price}{swatches}</div>
-      </Link>
+      <div className="group relative flex h-full flex-col gap-2">
+        <div className="store-card relative aspect-square overflow-hidden rounded-card bg-line-soft" style={p.image ? undefined : fabricStyle(p.id, p.swatches[0]?.hex)}>{img}</div>
+        <div className="flex flex-1 items-end gap-2 px-0.5">
+          <Link to={to} viewTransition className="min-w-0 flex-1 space-y-0.5 after:absolute after:inset-0">{name}{price}</Link>
+          <div className="relative">{add}</div>
+        </div>
+        {sheet}
+      </div>
     );
   }
   return (
-    <Link to={href(`/p/${p.id}`)} viewTransition className="store-card group lift flex h-full flex-col overflow-hidden rounded-card border border-line/70 bg-surface shadow-card">
-      <div className="relative aspect-[4/3.9] overflow-hidden bg-line-soft" style={p.image ? undefined : fabricStyle(p.id, p.swatches[0]?.hex)}>{img}</div>
-      <div className={cx('flex flex-1 flex-col gap-1', compact ? 'px-2 pb-2 pt-1.5' : 'px-3 pb-3 pt-2.5')}>{name}{price}{swatches}</div>
-    </Link>
+    <div className={cx('store-card group lift relative flex h-full flex-col rounded-card border border-line/60 bg-surface shadow-card', compact ? 'p-1.5' : 'p-2')}>
+      <div className="relative aspect-square overflow-hidden rounded-[calc(var(--radius-card)-6px)] bg-line-soft" style={p.image ? undefined : fabricStyle(p.id, p.swatches[0]?.hex)}>{img}</div>
+      <div className={cx('flex flex-1 flex-col', compact ? 'gap-1 px-1 pb-0.5 pt-1.5' : 'gap-1 px-1.5 pb-1 pt-2.5')}>
+        <Link to={to} viewTransition className="space-y-0.5 after:absolute after:inset-0 after:rounded-card">{name}{sub}</Link>
+        <div className="mt-auto flex items-end justify-between gap-2 pt-1">{price}<div className="relative">{add}</div></div>
+      </div>
+      {sheet}
+    </div>
+  );
+}
+
+/** Quick add from a product card: pick colour / pack / quantity in a bottom sheet. */
+function QuickAdd({ id, name, onClose }: { id: string; name: string; onClose: () => void }) {
+  const { slug, href } = useStoreLocation();
+  const me = useStore().data?.me;
+  const { data } = useApi<ProductData>(`/api/store/${slug}/products/${id}`);
+  const buy = useBuy(slug, data, me);
+  return (
+    <BottomSheet open onClose={onClose} title={name}>
+      {!buy ? <div className="space-y-3"><Skeleton className="h-20 w-full" /><Skeleton className="h-12 w-2/3" /><Skeleton className="h-14 w-full" /></div> : (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="size-20 shrink-0 overflow-hidden rounded-2xl bg-line-soft" style={buy.image ? undefined : fabricStyle(buy.variant.id, buy.variant.colour_hex)}>
+              {buy.image && <img src={buy.image} alt="" className="size-full object-cover" />}
+            </div>
+            <div className="min-w-0 flex-1"><BuyPrice buy={buy} size="md" /><StockLine buy={buy} /></div>
+          </div>
+          <BuyOptions buy={buy} />
+          <div className="flex items-center justify-between gap-3">
+            <Stepper value={buy.qty} onChange={buy.setQty} max={buy.maxQty} label={t('store.quantity')} />
+            <Link to={href(`/p/${id}`)} className="text-sm font-bold underline underline-offset-4">{t('store.seeDetails')}</Link>
+          </div>
+          {buy.added ? (
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={onClose} className="press min-h-14 rounded-2xl border border-line bg-surface font-bold">{t('store.keepShopping')}</button>
+              <Link to={href('/cart')} className="press flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-ink font-bold text-paper"><Check className="size-5" aria-hidden />{t('store.viewCart')}</Link>
+            </div>
+          ) : (
+            <button type="button" disabled={buy.soldOut || buy.baseQty > buy.variant.available} onClick={buy.add}
+              className="press flex min-h-14 w-full items-center justify-between rounded-2xl bg-ink px-5 font-bold text-paper disabled:opacity-50">
+              <span>{buy.soldOut ? t('store.outOfStock') : t('store.addToCart')}</span>
+              <span className="num font-display text-xl">{formatNaira(buy.total)}</span>
+            </button>
+          )}
+        </div>
+      )}
+    </BottomSheet>
   );
 }

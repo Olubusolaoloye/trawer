@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowDown, ArrowUp, Check, ExternalLink, ImagePlus, Monitor, Smartphone, Trash2, Upload } from 'lucide-react';
-import { THEME_PALETTES, THEMES, FONTS, RADII, HEADERS, CARDS, DENSITIES, type SectionId } from '@trawer/core/storefront-theme';
+import { ArrowDown, ArrowUp, Check, ExternalLink, ImagePlus, Monitor, Plus, Smartphone, Trash2, Upload } from 'lucide-react';
+import { ACCENTS, ACCENT_FILLS, onColour, THEME_PALETTES, THEMES, FONTS, RADII, HEADERS, CARDS, DENSITIES, type SectionId } from '@trawer/core/storefront-theme';
 import { api } from '../lib/api';
 import { msgOriginOk, msgTarget, pageHref } from '../lib/demo';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
@@ -139,6 +139,21 @@ function Designer({ draft, setDraft, dirty, onSaved }: { draft: Draft; setDraft:
                 </label>
               </div>
             </fieldset>
+            <fieldset>
+              <legend className="mb-1 text-[15px] font-bold">{t('design.accent')}</legend>
+              <p className="mb-2 text-sm text-muted">{t('design.accentHint')}</p>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {ACCENTS.map((a) => {
+                  const fill = a === 'brand' ? draft.brand_colour : ACCENT_FILLS[a];
+                  return (
+                    <button key={a} type="button" aria-label={t(`design.accent.${a}` as MessageKey)} aria-pressed={d.accent === a} onClick={() => set({ accent: a })} title={t(`design.accent.${a}` as MessageKey)}
+                      className={cx('press flex size-10 items-center justify-center rounded-xl transition', d.accent === a ? 'ring-[3px] ring-ink ring-offset-2' : 'ring-1 ring-black/10')} style={{ background: fill }}>
+                      <Plus className="size-5" style={{ color: onColour(fill) }} aria-hidden />
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
           </Panel>
 
           <Panel title={t('design.theme')}>
@@ -150,7 +165,7 @@ function Designer({ draft, setDraft, dirty, onSaved }: { draft: Draft; setDraft:
                     <div className="flex h-16 overflow-hidden rounded-lg border border-black/10" style={{ background: p.canvas }} aria-hidden>
                       <div className="m-2 flex flex-1 flex-col justify-between rounded-md p-1.5" style={{ background: p.surface, boxShadow: th === 'bold' ? '2px 2px 0 #111' : undefined, border: `1px solid ${p.line}` }}>
                         <span className="h-1.5 w-3/4 rounded-full" style={{ background: p.ink }} />
-                        <span className="h-2.5 w-1/2 rounded-full" style={{ background: draft.brand_colour }} />
+                        <span className="flex items-center justify-between"><span className="h-2.5 w-1/2 rounded-full" style={{ background: draft.brand_colour }} /><span className="size-2.5 rounded-[3px]" style={{ background: d.accent === 'brand' ? draft.brand_colour : ACCENT_FILLS[d.accent] }} /></span>
                       </div>
                     </div>
                   </Choice>

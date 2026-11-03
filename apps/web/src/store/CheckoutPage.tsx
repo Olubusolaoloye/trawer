@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Navigate } from 'react-router';
-import { Check, Lock, MapPin } from 'lucide-react';
+import { Check, Landmark, Lock, MapPin, ShieldCheck, Store, Truck } from 'lucide-react';
 import { api } from '../lib/api';
 import { pageSearch } from '../lib/demo';
 import { cart } from '../lib/cart';
@@ -11,7 +11,7 @@ import { ErrorNote, Field, Input, Spinner, Textarea } from '../components/ui';
 import { t } from '../i18n';
 import { CartLineThumb, savingOf, useQuote } from './CartPage';
 import { useStore } from './StoreLayout';
-import { PageHeader } from './PageHeader';
+import { AppBar, Sheet } from './kit';
 
 interface Address { line1: string; area: string; city: string; state: string; landmark: string }
 const ADDR_KEY = 'trawer:address';
@@ -53,12 +53,11 @@ export function CheckoutPage() {
   const addressOk = method === 'pickup' || (addr.line1.trim().length >= 3 && addr.city.trim().length >= 2);
 
   return (
-    <form className="mx-auto flex min-h-dvh max-w-xl flex-col" onSubmit={(e) => { e.preventDefault(); void place.run(); }}>
-      <PageHeader title={t('checkout.title')} back={href('/cart')}
-        right={<span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1.5 text-xs font-bold text-green-ink"><Lock className="size-3.5" aria-hidden />{t('checkout.held', { n: store.business.reservation_minutes })}</span>} />
-
-      <div className="flex-1 space-y-3.5 px-4 pb-44">
-        <section aria-label={t('checkout.items')} className="rounded-[18px] border border-line bg-surface px-3.5 py-1.5">
+    <form className="flex min-h-dvh flex-col" onSubmit={(e) => { e.preventDefault(); void place.run(); }}>
+      <AppBar title={t('checkout.title')} back={href('/cart')} />
+      <Sheet className="space-y-5 px-4 pb-48">
+        <p className="flex items-center gap-2 rounded-2xl bg-green-50 px-3.5 py-2.5 text-sm font-semibold text-green-ink"><Lock className="size-4 shrink-0" aria-hidden />{t('checkout.held', { n: store.business.reservation_minutes })}</p>
+        <section aria-label={t('checkout.items')} className="rounded-[22px] border border-line/60 bg-surface px-3.5 py-1.5 shadow-card">
           {quote.lines.map((l, i) => (
             <div key={`${l.variant_id}:${l.unit_id}`} className={cx('flex items-center gap-3 py-2.5', i > 0 && 'border-t border-line-soft')}>
               <CartLineThumb line={l} />
@@ -71,22 +70,27 @@ export function CheckoutPage() {
           ))}
         </section>
 
-        <fieldset>
-          <legend className="mb-2 text-[15px] font-bold">{t('checkout.delivery')}</legend>
-          <div className="grid grid-cols-2 gap-2">
-            {(['pickup', 'delivery'] as const).map((m) => (
-              <button key={m} type="button" aria-pressed={method === m} onClick={() => setMethod(m)}
-                className={cx('flex min-h-[72px] flex-col items-start justify-center gap-0.5 rounded-2xl border-2 px-3.5 text-left',
-                  method === m ? 'border-ink bg-ink text-paper' : 'border-line bg-surface')}>
-                <b className="text-[15px]">{m === 'pickup' ? t('checkout.pickup') : t('checkout.deliver')}</b>
-                <span className={cx('text-xs', method === m ? 'text-paper/75' : 'text-muted')}>{m === 'pickup' ? (store.business.address ?? t('checkout.atShop')) : t('checkout.feeConfirmed')}</span>
+        <fieldset className="space-y-2.5">
+          <legend className="mb-2.5 font-display text-lg font-extrabold">{t('checkout.delivery')}</legend>
+          {(['pickup', 'delivery'] as const).map((m) => {
+            const Icon = m === 'pickup' ? Store : Truck;
+            const on = method === m;
+            return (
+              <button key={m} type="button" aria-pressed={on} onClick={() => setMethod(m)}
+                className={cx('press flex w-full items-center gap-3 rounded-[22px] border-2 bg-surface p-3.5 text-left shadow-card transition-colors', on ? 'border-ink' : 'border-transparent')}>
+                <span className={cx('flex size-11 shrink-0 items-center justify-center rounded-2xl', on ? 'bg-ink text-paper' : 'bg-line-soft text-body')}><Icon className="size-5" aria-hidden /></span>
+                <span className="min-w-0 flex-1">
+                  <b className="block text-[15px]">{m === 'pickup' ? t('checkout.pickup') : t('checkout.deliver')}</b>
+                  <span className="text-[13px] text-muted">{m === 'pickup' ? (store.business.address ?? t('checkout.atShop')) : t('checkout.feeConfirmed')}</span>
+                </span>
+                <span className={cx('flex size-6 shrink-0 items-center justify-center rounded-full border-2', on ? 'border-ink bg-ink' : 'border-line')} aria-hidden>{on && <Check className="size-3.5 text-paper" strokeWidth={3.2} />}</span>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </fieldset>
 
         {method === 'delivery' && (editAddr ? (
-          <div className="space-y-3 rounded-[18px] border border-line bg-surface p-3.5">
+          <div className="space-y-3 rounded-[22px] border border-line/60 bg-surface p-3.5 shadow-card">
             <Field label={t('checkout.address')} htmlFor="l1"><Input id="l1" required minLength={3} autoComplete="street-address" value={addr.line1} onChange={(e) => setAddr({ ...addr, line1: e.target.value })} /></Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label={t('checkout.area')} htmlFor="area"><Input id="area" value={addr.area} onChange={(e) => setAddr({ ...addr, area: e.target.value })} /></Field>
@@ -98,14 +102,23 @@ export function CheckoutPage() {
             </div>
           </div>
         ) : (
-          <section className="flex items-start gap-3 rounded-[18px] border border-line bg-surface p-3.5">
+          <section className="flex items-start gap-3 rounded-[22px] border border-line/60 bg-surface p-3.5 shadow-card">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gold-50"><MapPin className="size-5 text-gold-ink" aria-hidden /></span>
             <div className="flex-1"><b className="text-[15px]">{addr.line1}</b><p className="text-[13px] text-body">{[addr.area, addr.city].filter(Boolean).join(', ')}{addr.landmark ? ` · ${addr.landmark}` : ''}</p></div>
             <button type="button" className="min-h-10 px-2.5 text-sm font-bold underline" onClick={() => setEditAddr(true)}>{t('checkout.change')}</button>
           </section>
         ))}
 
-        <section className="flex items-center gap-3 rounded-[18px] border border-line bg-surface p-3.5">
+        <section aria-labelledby="pay-h" className="space-y-2.5">
+          <h2 id="pay-h" className="font-display text-lg font-extrabold">{t('checkout.payment')}</h2>
+          <div className="flex items-center gap-3 rounded-[22px] border-2 border-ink bg-surface p-3.5 shadow-card">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-ink text-paper"><Landmark className="size-5" aria-hidden /></span>
+            <span className="min-w-0 flex-1"><b className="block text-[15px]">{t('checkout.transferTitle')}</b><span className="text-[13px] text-muted">{t('checkout.transferHint')}</span></span>
+            <ShieldCheck className="size-6 shrink-0 text-green-ink" aria-hidden />
+          </div>
+        </section>
+
+        <section className="flex items-center gap-3 rounded-[22px] bg-line-soft p-3.5">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-green-50"><Check className="size-5 text-green-ink" aria-hidden /></span>
           <div className="flex-1"><b className="text-[15px]">{store.me.name} · {me.data.user.phone}</b><p className="text-[13px] text-body">{t('checkout.verified')}</p></div>
         </section>
@@ -119,12 +132,12 @@ export function CheckoutPage() {
           {savingOf(quote) > 0 && <div className="flex justify-between font-semibold text-green-ink"><dt>{t('checkout.youSave')}</dt><dd className="num">−{formatNaira(savingOf(quote))}</dd></div>}
         </dl>
         <ErrorNote error={place.error} />
-      </div>
+      </Sheet>
 
-      <div className="fixed inset-x-0 bottom-0 border-t border-line bg-surface">
-        <div className="mx-auto max-w-xl space-y-2 px-4 pb-[18px] pt-3">
+      <div className="fixed inset-x-0 bottom-0 z-30">
+        <div className="mx-auto max-w-xl space-y-2 rounded-t-[28px] border-t border-line/60 bg-surface px-4 pb-[max(18px,env(safe-area-inset-bottom))] pt-4 shadow-float">
           <button type="submit" disabled={place.pending || !addressOk}
-            className="flex min-h-15 w-full items-center justify-between rounded-[18px] bg-green px-5 font-bold text-white disabled:opacity-60">
+            className="press flex min-h-15 w-full items-center justify-between rounded-2xl bg-green px-5 font-bold text-white shadow-[0_12px_24px_-12px_rgb(11_122_75/0.8)] disabled:opacity-60">
             <span className="text-[17px]">{place.pending ? t('common.loading') : t('checkout.payByTransfer')}</span>
             <span className="num font-display text-[22px] font-extrabold">{formatNaira(quote.subtotal_kobo)}</span>
           </button>

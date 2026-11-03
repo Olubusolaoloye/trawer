@@ -8,7 +8,7 @@ import { formatDate, formatNaira, cx } from '../lib/format';
 import { useStoreLocation } from '../lib/store-context';
 import { Badge, Button, Empty, ErrorNote, Spinner } from '../components/ui';
 import { t, type MessageKey } from '../i18n';
-import { PageHeader } from './PageHeader';
+import { AppBar, Sheet, Timeline, type TimelineStep } from './kit';
 
 interface OrderView {
   order: any;
@@ -130,79 +130,86 @@ export function OrderPage() {
     );
   }
 
-  const timeline = ['confirmed', 'packed', 'dispatched', 'delivered'];
-  const failed = o.fulfilment_status === 'failed';
-  const step = timeline.indexOf(failed || o.fulfilment_status === 'returned' ? 'dispatched' : o.fulfilment_status);
-  const when: Record<string, string> = { confirmed: o.confirmed_at ?? '' };
+  const delivery = o.delivery_method === 'delivery';
+  const failed = o.fulfilment_status === 'failed' || o.fulfilment_status === 'returned';
+  const when: Record<string, string | undefined> = { placed: o.created_at, paid: data.payments[0]?.received_at ?? o.confirmed_at ?? undefined };
   for (const e of data.delivery?.events ?? []) when[e.status] = e.at;
   const riderName = data.delivery?.delivery?.rider_name;
-  return (
-    <div className="mx-auto flex min-h-dvh max-w-xl flex-col">
-      {paidInFull ? (
-        <section className="space-y-3 bg-green px-5 pb-6 pt-6 text-white">
-          <span className="flex size-14 items-center justify-center rounded-full bg-surface"><Check className="size-8 text-green" strokeWidth={3} aria-hidden /></span>
-          <div role="status">
-            <p className="font-display text-[30px] font-extrabold leading-tight">{t('order.received', { amount: formatNaira(o.amount_paid_kobo) })}</p>
-            <p className="text-[15px] text-[#D7F0E2]">{t('order.confirmedLine', { n: o.order_number })}</p>
-          </div>
-          <Link to={href('/orders')} className="inline-flex min-h-[46px] items-center rounded-xl bg-surface px-4 text-[15px] font-bold text-green-ink">{t('store.orders')}</Link>
-        </section>
-      ) : (
-        <PageHeader title={t('order.title', { n: o.order_number })} back={href('/orders')}
-          right={<Badge tone={o.status === 'confirmed' || o.status === 'completed' ? 'good' : 'neutral'}>{t(`order.status.${o.status}` as MessageKey)}</Badge>} />
-      )}
+  const isLive = o.status === 'confirmed' || o.status === 'completed';
+  const reached = (s: string) => {
+    const order = delivery ? ['confirmed', 'packed', 'dispatched', 'delivered'] : ['confirmed', 'packed', 'collected'];
+    const at = order.indexOf(o.fulfilment_status === 'failed' || o.fulfilment_status === 'returned' ? 'dispatched' : o.fulfilment_status);
+    return order.indexOf(s) <= at;
+  };
+  const raw: { key: string; title: string; detail?: string; done: boolean }[] = [
+    { key: 'placed', title: t('timeline.placed'), detail: t('timeline.placedHint'), done: true },
+    { key: 'paid', title: t(o.is_credit ? 'timeline.credit' : 'timeline.paid'), detail: o.is_credit ? undefined : t('timeline.paidHint'), done: isLive },
+    { key: 'packed', title: t('order.fulfil.packed'), detail: t('timeline.packedHint'), done: isLive && reached('packed') },
+    ...(delivery
+      ? [{ key: 'dispatched', title: t('order.fulfil.dispatched'), detail: riderName ? t('track.onTheWayWith', { name: riderName }) : t('timeline.dispatchedHint'), done: isLive && reached('dispatched') },
+         { key: 'delivered', title: t('order.fulfil.delivered'), detail: failed ? t('track.failed', { reason: t(`deliv.fail.${data.delivery?.delivery?.failure ?? 'other'}` as MessageKey) }) : t('timeline.deliveredHint', { place: o.delivery_address?.city ?? '' }), done: isLive && reached('delivered') }]
+      : [{ key: 'collected', title: t('order.fulfil.collected'), detail: t('timeline.collectHint'), done: isLive && reached('collected') }]),
+  ];
+  const firstTodo = raw.findIndex((r) => !r.done);
+  const steps: TimelineStep[] = raw.map((r, i) => ({
+    title: r.title, detail: r.detail, at: r.done && when[r.key] ? clock(when[r.key]!) : null,
+    state: r.done ? 'done' : failed && r.key === 'delivered' ? 'failed' : i === firstTodo && o.status !== 'cancelled' && o.status !== 'expired' ? 'current' : 'todo',
+  }));
 
-      <div className="space-y-4 px-5 pb-8 pt-5">
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <AppBar title={t('order.title', { n: o.order_number })} back={href('/orders')} />
+      <Sheet className="space-y-4 px-4 pb-10">
+        {paidInFull && (
+          <section role="status" className="flex items-center gap-3.5 rounded-[22px] bg-green p-4 text-white shadow-card">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white"><Check className="size-7 text-green" strokeWidth={3} aria-hidden /></span>
+            <div>
+              <p className="font-display text-xl font-extrabold leading-tight">{t('order.received', { amount: formatNaira(o.amount_paid_kobo) })}</p>
+              <p className="text-sm text-[#D7F0E2]">{t('order.confirmedLine', { n: o.order_number })}</p>
+            </div>
+          </section>
+        )}
+        {!paidInFull && (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted">{formatDate(o.created_at, true)}{data.business ? ` · ${data.business.name}` : ''}</p>
+            <Badge tone={isLive ? 'good' : 'neutral'}>{t(`order.status.${o.status}` as MessageKey)}</Badge>
+          </div>
+        )}
         {o.needs_attention === 'paid_after_expiry_out_of_stock' && (
           <p className="rounded-2xl bg-gold-50 p-4 text-sm text-gold-ink">{t('order.paidAfterExpiry')}</p>
         )}
-        {(o.status === 'confirmed' || o.status === 'completed') && o.delivery_method === 'delivery' && (
-          <section>
-            <h2 className="mb-3 font-display text-[22px] font-extrabold">{t('order.deliveryTo', { place: o.delivery_address?.city ?? '' })}</h2>
-            {failed && <p role="status" className="mb-3 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-ink">{t('track.failed', { reason: t(`deliv.fail.${data.delivery?.delivery?.failure ?? 'other'}` as MessageKey) })}</p>}
-            <ol>
-              {timeline.map((s, i) => {
-                const done = i <= step;
-                const current = i === step + 1;
-                return (
-                  <li key={s} className="flex gap-3.5">
-                    <div className="flex w-7 flex-col items-center">
-                      <span className={cx('flex size-7 items-center justify-center rounded-full', done ? 'bg-green' : current ? 'border-4 border-indigo bg-surface' : 'border-[3px] border-line bg-surface')}>
-                        {done && <Check className="size-3.5 text-white" strokeWidth={3.4} aria-hidden />}
-                      </span>
-                      {i < timeline.length - 1 && <span className={cx('min-h-7 w-[3px] flex-1', done ? 'bg-green' : 'bg-line')} />}
-                    </div>
-                    <div className="pb-5">
-                      <b className={cx(current && 'text-indigo', !done && !current && 'text-muted')}>{t(`order.fulfil.${s}` as MessageKey)}</b>
-                      {done && when[s] && <p className="text-sm text-muted">{formatDate(when[s]!, true)}</p>}
-                      {s === 'dispatched' && i === step && !failed && riderName && <p className="text-sm font-semibold text-indigo">{t('track.onTheWayWith', { name: riderName })}</p>}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
-        )}
 
-        <section className="space-y-2 rounded-2xl border border-line bg-surface p-4">
-          {o.items.map((i: any) => (
-            <div key={i.id} className="flex justify-between gap-3 text-sm">
-              <span>{i.unit_qty} × {i.name}{i.variant_label ? ` (${i.variant_label})` : ''}</span>
-              <span className="num font-semibold">{formatNaira(i.line_total_kobo)}</span>
-            </div>
-          ))}
-          <div className="flex justify-between border-t border-line pt-2 font-bold"><span>{t('order.total')}</span><span className="num">{formatNaira(o.total_kobo)}</span></div>
-          {o.balance_kobo > 0 && o.amount_paid_kobo > 0 && <div className="flex justify-between text-sm font-semibold text-red-ink"><span>{t('order.balance')}</span><span className="num">{formatNaira(o.balance_kobo)}</span></div>}
-          {data.payments.map((p, i) => (
-            <p key={i} className="text-[13px] text-muted">{formatDate(p.received_at, true)} · {formatNaira(p.amount_kobo)}</p>
-          ))}
+        <section aria-labelledby="progress-h" className="rounded-[22px] border border-line/60 bg-surface p-4 pr-3 shadow-card">
+          <h2 id="progress-h" className="mb-4 font-display text-lg font-extrabold">{delivery ? t('order.deliveryTo', { place: o.delivery_address?.city ?? '' }) : t('timeline.pickupTitle')}</h2>
+          <Timeline steps={steps} />
         </section>
-        {(o.status === 'confirmed' || o.status === 'completed') && <InvoiceLink orderId={o.id} />}
+
+        <section aria-labelledby="items-h" className="rounded-[22px] border border-line/60 bg-surface p-4 shadow-card">
+          <h2 id="items-h" className="mb-2 font-display text-lg font-extrabold">{t('timeline.products')}</h2>
+          <ul className="divide-y divide-line-soft">
+            {o.items.map((i: any) => (
+              <li key={i.id} className="flex items-center gap-3 py-2.5">
+                <span className="num flex size-9 shrink-0 items-center justify-center rounded-xl bg-line-soft text-sm font-extrabold">{i.unit_qty}×</span>
+                <span className="min-w-0 flex-1 text-sm"><b className="block truncate">{i.name}</b>{i.variant_label && <span className="text-muted">{i.variant_label}</span>}</span>
+                <span className="num font-semibold">{formatNaira(i.line_total_kobo)}</span>
+              </li>
+            ))}
+          </ul>
+          <dl className="mt-2 space-y-1 border-t border-line pt-3 text-[15px]">
+            <div className="flex justify-between font-bold"><dt>{t('order.total')}</dt><dd className="num">{formatNaira(o.total_kobo)}</dd></div>
+            {o.balance_kobo > 0 && o.amount_paid_kobo > 0 && <div className="flex justify-between font-semibold text-red-ink"><dt>{t('order.balance')}</dt><dd className="num">{formatNaira(o.balance_kobo)}</dd></div>}
+          </dl>
+          {data.payments.map((p, i) => <p key={i} className="mt-1 text-[13px] text-muted">{formatDate(p.received_at, true)} · {formatNaira(p.amount_kobo)}</p>)}
+        </section>
+
+        {isLive && <InvoiceLink orderId={o.id} />}
         <p className="rounded-2xl bg-indigo-50 p-4 text-sm text-indigo">{t('order.whatsappUpdates')}</p>
-      </div>
+      </Sheet>
     </div>
   );
 }
+
+const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit' });
 
 /** Opens the buyer's shareable invoice (issued on first request). */
 function InvoiceLink({ orderId }: { orderId: string }) {

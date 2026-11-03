@@ -7,7 +7,7 @@ import { cx, formatNaira } from '../lib/format';
 import { useStoreLocation } from '../lib/store-context';
 import { Button, Card, ErrorNote, Field, Input, Skeleton } from '../components/ui';
 import { t } from '../i18n';
-import { PageHeader } from './PageHeader';
+import { AppBar, Sheet } from './kit';
 
 interface Shop { business_id: string; shop: string; marketing: boolean; whatsapp_updates: boolean; owing_kobo: number }
 
@@ -26,9 +26,10 @@ export default function PrivacyPage() {
   const owing = (data?.shops ?? []).reduce((n, s) => n + s.owing_kobo, 0);
 
   return (
-    <div className="mx-auto max-w-md">
-      <PageHeader title={t('privacy.title')} back={href('/account')} />
-      <div className="space-y-4 px-4 pb-10">
+    <div className="flex flex-1 flex-col">
+      <AppBar title={t('privacy.title')} back={href('/account')} />
+      <Sheet className="px-4 pb-10">
+      <div className="mx-auto max-w-md space-y-4">
         <p className="flex gap-2 rounded-2xl bg-green-50 p-4 text-sm text-green-ink"><ShieldCheck className="size-5 shrink-0" aria-hidden />{t('privacy.intro')}</p>
 
         <Card className="space-y-3">
@@ -53,6 +54,7 @@ export default function PrivacyPage() {
 
         <DeleteAccount phone={me.data?.user?.phone ?? ''} owing={owing} onDone={async () => { await invalidate('/api/'); navigate(href('/')); }} />
       </div>
+      </Sheet>
     </div>
   );
 }

@@ -35,7 +35,9 @@ if (env.WEB_DIST) {
   const ssr = await loadSsr(app, index.toString('utf8'));
   console.info(ssr ? 'store home pages: server-rendered' : 'store home pages: app shell (no SSR bundle)');
   app.get('*', async (c) => {
-    if (c.req.path.startsWith('/api/')) return c.notFound();
+    // Unknown API routes and missing build files are real 404s (never the HTML page, which would
+    // break a browser loading an old script after a deploy).
+    if (c.req.path.startsWith('/api/') || c.req.path.startsWith('/assets/')) return c.notFound();
     const rendered = ssr ? await ssr(c) : null;
     if (rendered) return rendered;
     const accept = c.req.header('accept-encoding') ?? '';

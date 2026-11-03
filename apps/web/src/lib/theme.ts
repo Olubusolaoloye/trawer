@@ -3,7 +3,7 @@
  * shop is ever accepted: every value here comes from our own closed lists).
  * Fonts are bundled and only fetched (from our own origin) when a shop picks them.
  */
-import { THEME_PALETTES, type FontChoice, type StorefrontDesign as Storefront } from '@trawer/core/storefront-theme';
+import { ACCENT_FILLS, THEME_PALETTES, mix, onColour, readableOnAll, type FontChoice, type StorefrontDesign as Storefront } from '@trawer/core/storefront-theme';
 
 export type { Storefront };
 
@@ -27,22 +27,28 @@ const RADIUS = {
   round: { xl: '999px', '2xl': '26px', '3xl': '32px', card: '28px' },
 } as const;
 
-/** Readable text colour on a background colour (WCAG relative luminance). */
-export function inkFor(hex: string): string {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b! > 0.4 ? '#0E1411' : '#ffffff';
-}
+/** Readable text colour on a background colour (whichever of white / near-black contrasts more). */
+export const inkFor = onColour;
 
-const VARS = ['--brand', '--brand-ink', '--color-paper', '--color-surface', '--color-ink', '--color-ink-2', '--color-body', '--color-muted', '--color-line', '--color-line-soft',
+const VARS = ['--brand', '--brand-ink', '--brand-text', '--accent', '--accent-ink', '--accent-text', '--accent-soft', '--color-paper', '--color-surface', '--color-ink', '--color-ink-2', '--color-body', '--color-muted', '--color-line', '--color-line-soft',
   '--display-font', '--r-xl', '--r-2xl', '--r-3xl', '--r-card', '--card-shadow'];
 
 /** The shop's look as CSS variables (also written into server-rendered pages, so the first paint is on-brand). */
 export function storeThemeVars(design: Storefront, brand: string): Record<string, string> {
   const p = THEME_PALETTES[design.theme];
   const r = RADIUS[design.radius];
+  const accent = design.accent === 'brand' || !design.accent ? brand : ACCENT_FILLS[design.accent];
+  const soft = mix(p.surface, accent, 0.14);
   return {
     '--brand': brand,
     '--brand-ink': inkFor(brand),
+    // Brand as text (prices, links) on this theme: adjusted until it passes WCAG AA.
+    '--brand-text': readableOnAll(brand, [p.surface, p.canvas]),
+    '--accent': accent,
+    '--accent-ink': onColour(accent),
+    // Accent text sits on cards, the page and its own tint: readable on all three.
+    '--accent-text': readableOnAll(accent, [p.surface, p.canvas, soft]),
+    '--accent-soft': soft,
     '--color-paper': p.canvas,
     '--color-surface': p.surface,
     '--color-ink': p.ink,

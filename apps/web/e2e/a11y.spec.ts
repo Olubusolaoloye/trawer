@@ -30,13 +30,20 @@ test.beforeEach(async () => {
 
 test('storefront pages (buyer)', async ({ page }) => {
   await page.goto('/s/balogun'); await page.getByRole('heading', { name: /New this week/ }).waitFor(); await audit(page, 'store home');
-  await page.getByRole('listitem').filter({ has: page.locator('h3') }).first().click(); await page.getByRole('heading', { level: 1 }).waitFor(); await audit(page, 'product');
+  await page.getByRole('button', { name: /^Add .* to cart$/ }).first().click();
+  const sheet = page.getByRole('dialog'); await sheet.getByRole('button', { name: /Add to cart/ }).waitFor(); await audit(page, 'quick-add sheet');
+  await sheet.getByRole('button', { name: /Add to cart/ }).click(); await sheet.getByRole('button', { name: 'Keep shopping' }).click();
+  await page.goto('/s/balogun/search'); await audit(page, 'search');
+  await page.goto('/s/balogun/search?q=lace'); await page.getByRole('heading', { name: /lace/ }).waitFor(); await audit(page, 'search results');
+  await page.goto('/s/balogun');
+  await page.locator('a[href^="/s/balogun/p/"]').first().click(); await page.getByRole('heading', { level: 1 }).waitFor(); await audit(page, 'product');
   await page.goto('/s/balogun/cart'); await audit(page, 'cart');
   await page.goto('/s/balogun/account'); await audit(page, 'sign in');
   await signIn(page, '+2348090000001');
   await page.goto('/s/balogun/account'); await page.getByText('Privacy & your data').waitFor(); await audit(page, 'account');
   await page.goto('/s/balogun/account/privacy'); await page.getByRole('heading', { name: 'Messages from shops' }).waitFor(); await audit(page, 'privacy');
   await page.goto('/s/balogun/orders'); await audit(page, 'orders');
+  await page.goto('/s/balogun/checkout'); await page.getByRole('button', { name: /Pay by transfer/ }).waitFor(); await audit(page, 'checkout');
 });
 
 test('public pages: tracking + invoice', async ({ page }) => {
@@ -67,13 +74,16 @@ test('dashboard pages (owner)', async ({ page }) => {
 test('every store theme stays accessible (owners can pick any of them)', async ({ page }) => {
   const c = new pg.Client({ connectionString: DB }); await c.connect();
   try {
-    for (const theme of ['market', 'linen', 'midnight', 'bold']) {
+    const accents: Record<string, string> = { market: 'coral', fresh: 'sky', linen: 'leaf', midnight: 'gold', bold: 'berry' };
+    for (const theme of ['market', 'fresh', 'linen', 'midnight', 'bold']) {
       await c.query(`update businesses set storefront = $1::jsonb where slug = 'balogun'`, [JSON.stringify({
-        theme, header: theme === 'midnight' ? 'glass' : theme === 'bold' ? 'clean' : 'brand', card: theme === 'linen' ? 'minimal' : theme === 'midnight' ? 'overlay' : 'classic',
+        theme, accent: accents[theme], header: theme === 'midnight' ? 'glass' : theme === 'bold' ? 'clean' : 'brand', card: theme === 'linen' ? 'minimal' : theme === 'midnight' ? 'overlay' : 'classic',
         announcement: { enabled: true, text: 'Free delivery in Lagos this week' }, show_stock: true,
       })]);
       await page.goto('/s/balogun'); await page.getByRole('heading', { name: /New this week/ }).waitFor();
       await audit(page, `theme ${theme}`);
+      await page.goto('/s/balogun/search?category=Lace'); await page.getByRole('heading', { name: 'Lace', exact: true, level: 2 }).waitFor();
+      await audit(page, `theme ${theme}: inner page`);
     }
   } finally {
     await c.query(`update businesses set storefront = '{}' where slug = 'balogun'`);

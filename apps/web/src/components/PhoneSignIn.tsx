@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '../lib/api';
 import { useMutation, invalidate } from '../lib/use-api';
 import { t } from '../i18n';
+import { Phone } from 'lucide-react';
 import { Button, ErrorNote, Field, Input } from './ui';
 
 /** Two-step phone OTP sign-in. Calls onDone after the session cookie is set and data refreshed. */
@@ -26,10 +27,11 @@ export function PhoneSignIn({ onDone }: { onDone: () => void }) {
       {!sent ? (
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void send.run(); }}>
           <Field label={t('auth.phone')} hint={t('auth.noPassword')} htmlFor="phone">
-            <div className="flex min-h-14 items-center gap-2.5 rounded-xl border-2 border-ink bg-surface px-4 focus-within:outline-3 focus-within:outline-ink">
+            <div data-field className="flex min-h-14 items-center gap-2.5 rounded-2xl border-[1.5px] border-line bg-surface px-4 shadow-[0_1px_2px_rgb(14_20_17/0.04)] transition focus-within:border-ink focus-within:ring-4 focus-within:ring-ink/10">
+              <Phone className="size-5 shrink-0 text-muted" aria-hidden />
               <span className="font-bold text-body">+234</span>
               <input id="phone" type="tel" inputMode="tel" autoComplete="tel" required placeholder="803 123 4567" value={phone} onChange={(e) => setPhone(e.target.value)}
-                className="min-w-0 flex-1 bg-transparent text-lg font-semibold outline-none placeholder:font-medium placeholder:text-muted" />
+                className="min-w-0 flex-1 bg-transparent text-lg font-semibold outline-none focus-visible:outline-none placeholder:font-medium placeholder:text-muted" />
             </div>
           </Field>
           <ErrorNote error={send.error} />
@@ -40,7 +42,7 @@ export function PhoneSignIn({ onDone }: { onDone: () => void }) {
           <p className="text-body">{t('auth.codeSent', { phone: full })}</p>
           <Field label={t('auth.code')} htmlFor="code" hint={import.meta.env.DEV ? t('auth.devHint') : undefined}>
             <Input id="code" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required autoFocus
-              value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} className="min-h-14 border-ink text-center font-display text-2xl tracking-[0.5em]" />
+              value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} className="min-h-16 rounded-2xl text-center font-display text-3xl tracking-[0.6em]" />
           </Field>
           <ErrorNote error={verify.error} />
           <Button type="submit" size="lg" className="w-full" pending={verify.pending}>{t('auth.verify')}</Button>

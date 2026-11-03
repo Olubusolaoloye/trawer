@@ -26,6 +26,12 @@
   /* the shop's own colour on storefronts (set at runtime) */
   --color-brand: var(--brand, #0B7A4B);
   --color-brand-ink: var(--brand-ink, #ffffff);
+  --color-brand-text: var(--brand-text, #0B7A4B);
+  /* quick actions + highlights (shop's accent choice; Trawer coral by default) */
+  --color-accent: var(--accent, #F0703F);
+  --color-accent-ink: var(--accent-ink, #0E1411);
+  --color-accent-text: var(--accent-text, #B4441A);
+  --color-accent-soft: var(--accent-soft, #FDEDE6);
   --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: var(--display-font, "Bricolage Grotesque Variable", "Inter Variable", system-ui, sans-serif);
   --radius-xl: var(--r-xl, 14px);
@@ -47,6 +53,9 @@ body { @apply bg-paper text-ink antialiased; font-feature-settings: "cv11", "ss0
 .num { font-variant-numeric: tabular-nums; }
 .dots { background-image: radial-gradient(circle at 12px 12px, rgb(242 183 5 / 0.55) 2px, transparent 2.5px); background-size: 24px 24px; }
 :focus-visible { outline: 3px solid var(--color-ink); outline-offset: 2px; }
+/* Inputs inside a styled field shell: the shell shows focus (ring via focus-within) instead. */
+[data-field] input:focus-visible { outline: none; }
+[data-field]:focus-within { outline: 3px solid var(--color-ink); outline-offset: 2px; }
 button, a, input, select, textarea { touch-action: manipulation; }
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -88,3 +97,9 @@ button, a, input, select, textarea { touch-action: manipulation; }
 
 /* Server-rendered first paint: content is already in place, so no entrance animation (better LCP). */
 [data-ssr] .rise, [data-ssr] .stagger > * { animation: none; }
+
+/* Bottom sheets (store kit) */
+@keyframes sheet-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheet-dialog { max-height: 100dvh; }
+.sheet-dialog[open] > div { animation: sheet-up .32s var(--ease-out) both; }
+.sheet-dialog::backdrop { animation: fade .2s ease-out both; }
