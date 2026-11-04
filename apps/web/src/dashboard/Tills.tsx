@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { api } from '../lib/api';
-import { invalidate, useApi, useMutation } from '../lib/use-api';
+import { invalidate, useApi, useMutation, optimistic } from '../lib/use-api';
 import { formatDate } from '../lib/format';
-import { Badge, Button, Card, Empty, ErrorNote, Input, Select, Spinner } from '../components/ui';
+import { Badge, Button, Card, Empty, ErrorNote, Input, Select, ListSkeleton } from '../components/ui';
 import { useBiz } from './context';
+import { useDebounced } from '../lib/debounce';
 
 /** Tills (POS devices): offline stock allocations and conflicts from offline sales. */
 export default function Tills() {
@@ -13,7 +14,8 @@ export default function Tills() {
   const devices = useApi<{ devices: any[] }>(`/api/biz/${id}/devices`);
   const alerts = useApi<{ alerts: any[] }>(`/api/biz/${id}/stock-alerts`);
   const [q, setQ] = useState('');
-  const search = useApi<{ products: any[] }>(q.length >= 2 ? `/api/biz/${id}/products?q=${encodeURIComponent(q)}` : null);
+  const dq = useDebounced(q.trim());
+  const search = useApi<{ products: any[] }>(dq.length >= 2 ? `/api/biz/${id}/products?q=${encodeURIComponent(dq)}` : null);
   const [pick, setPick] = useState<{ productId: string } | null>(null);
   const detail = useApi<any>(pick ? `/api/biz/${id}/products/${pick.productId}` : null);
   const [form, setForm] = useState({ device: '', variant: '', qty: '' });
@@ -23,7 +25,8 @@ export default function Tills() {
     await invalidate(`/api/biz/${id}/devices`);
     if (pick) await invalidate(`/api/biz/${id}/products/${pick.productId}`);
   });
-  const resolve = useMutation(async (aid: string) => { await api(`/api/biz/${id}/stock-alerts/${aid}/resolve`, { json: {} }); await invalidate(`/api/biz/${id}/stock-alerts`); });
+  const resolve = useMutation((aid: string) => optimistic<{ alerts: { id: string }[] }>(`/api/biz/${id}/stock-alerts`,
+    (d) => ({ ...d, alerts: d.alerts.filter((a) => a.id !== aid) }), () => api(`/api/biz/${id}/stock-alerts/${aid}/resolve`, { json: {} })));
 
   return (
     <div className="space-y-5">
@@ -31,7 +34,7 @@ export default function Tills() {
 
       <section className="space-y-2">
         <h2 className="font-display text-xl font-extrabold">Conflicts from offline sales</h2>
-        {!alerts.data ? <Spinner /> : alerts.data.alerts.length === 0 ? <p className="text-body">No open alerts.</p> : alerts.data.alerts.map((a) => (
+        {!alerts.data ? <ListSkeleton /> : alerts.data.alerts.length === 0 ? <p className="text-body">No open alerts.</p> : alerts.data.alerts.map((a) => (
           <Card key={a.id} className="space-y-1 border-gold bg-gold-50">
             <p className="font-semibold">{a.product}{a.label ? ` (${a.label})` : ''} · short {a.qty}</p>
             <p className="text-sm">{a.message}</p>
@@ -47,7 +50,7 @@ export default function Tills() {
 
       <section className="space-y-2">
         <h2 className="font-display text-xl font-extrabold">Tills</h2>
-        {!devices.data ? <Spinner /> : devices.data.devices.length === 0 ? <Empty>Install the Trawer POS app and add a till from it.</Empty> : devices.data.devices.map((d) => (
+        {!devices.data ? <ListSkeleton /> : devices.data.devices.length === 0 ? <Empty>Install the Trawer POS app and add a till from it.</Empty> : devices.data.devices.map((d) => (
           <Card key={d.id} className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="font-semibold">{d.name} <span className="text-sm text-body">· {d.location}</span></p>

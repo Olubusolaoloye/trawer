@@ -6,7 +6,7 @@ import { hardNav } from '../lib/demo';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { formatDate, formatNaira, cx } from '../lib/format';
 import { useStoreLocation } from '../lib/store-context';
-import { Badge, Button, Empty, ErrorNote, Spinner } from '../components/ui';
+import { Badge, Button, Empty, ErrorNote, PageSkeleton } from '../components/ui';
 import { t, type MessageKey } from '../i18n';
 import { AppBar, Sheet, Timeline, type TimelineStep } from './kit';
 
@@ -63,7 +63,7 @@ export function OrderPage() {
   const left = useCountdown(data?.order.status === 'pending' ? data.order.reservation_expires_at : null);
 
   if (error) return <Empty>Order not found.</Empty>;
-  if (!data) return <Spinner />;
+  if (!data) return <PageSkeleton />;
   const o = data.order;
   const paidInFull = o.payment_status === 'paid';
   const awaiting = o.status === 'pending' && o.balance_kobo > 0;

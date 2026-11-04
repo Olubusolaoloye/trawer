@@ -7,6 +7,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { env } from './env';
+import { fetchWithTimeout } from '@trawer/core/http';
 
 const PHONE = /\+?234\d{10}|\b0[789][01]\d{8}\b/g;
 const TOKEN = /(eyJ[\w-]+\.[\w-]+\.[\w-]+)|(sk_(live|test)_\w+)|(EAA[A-Za-z0-9]{20,})/g;
@@ -59,7 +60,7 @@ export function sendToSentry(r: Report): void {
       extra: r.extra,
     };
     const body = `${JSON.stringify({ event_id: eventId, sent_at: new Date().toISOString() })}\n${JSON.stringify({ type: 'event' })}\n${JSON.stringify(event)}\n`;
-    void fetch(`${dsn.protocol}//${dsn.host}/api/${project}/envelope/?sentry_key=${dsn.username}&sentry_version=7`, {
+    void fetchWithTimeout(5_000)(`${dsn.protocol}//${dsn.host}/api/${project}/envelope/?sentry_key=${dsn.username}&sentry_version=7`, {
       method: 'POST', headers: { 'Content-Type': 'application/x-sentry-envelope' }, body,
     }).catch(() => undefined);
   } catch {

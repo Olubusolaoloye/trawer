@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { ArrowRight, Check, Layers, Plus } from 'lucide-react';
 import { api } from '../lib/api';
@@ -193,7 +193,8 @@ export function ProductGrid({ items, design, wholesale }: { items: Item[]; desig
 }
 
 /** Product card: photo, name, price, and a quick-add button (opens the options sheet). */
-export function ProductCard({ p, i, design, wholesale }: { p: Item; i: number; design: StoreDesign; wholesale: boolean }) {
+/** Memoised: adding to the cart re-renders the page, but not every card in the grid. */
+export const ProductCard = memo(function ProductCard({ p, i, design, wholesale }: { p: Item; i: number; design: StoreDesign; wholesale: boolean }) {
   const { href } = useStoreLocation();
   const [quick, setQuick] = useState(false);
   const compact = design.density === 'compact';
@@ -265,7 +266,7 @@ export function ProductCard({ p, i, design, wholesale }: { p: Item; i: number; d
       {sheet}
     </div>
   );
-}
+});
 
 /** Quick add from a product card: pick colour / pack / quantity in a bottom sheet. */
 function QuickAdd({ id, name, onClose }: { id: string; name: string; onClose: () => void }) {
@@ -279,7 +280,7 @@ function QuickAdd({ id, name, onClose }: { id: string; name: string; onClose: ()
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="size-20 shrink-0 overflow-hidden rounded-2xl bg-line-soft" style={buy.image ? undefined : fabricStyle(buy.variant.id, buy.variant.colour_hex)}>
-              {buy.image && <img src={buy.image} alt="" className="size-full object-cover" />}
+              {buy.image && <img loading="lazy" decoding="async" src={buy.image} alt="" className="size-full object-cover" />}
             </div>
             <div className="min-w-0 flex-1"><BuyPrice buy={buy} size="md" /><StockLine buy={buy} /></div>
           </div>

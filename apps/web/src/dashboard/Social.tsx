@@ -10,6 +10,7 @@ import { Badge, Button, Card, Empty, ErrorNote, Input, Skeleton, Textarea } from
 import { t, type MessageKey } from '../i18n';
 import { useBiz } from './context';
 import { useMfaMutation } from './MfaGate';
+import { useDebounced } from '../lib/debounce';
 
 type Platform = 'instagram' | 'facebook';
 interface Account { id: string; platform: Platform; name: string; status: 'active' | 'expired' | 'revoked'; quota_used: number | null; quota_total: number | null; last_error: string | null }
@@ -134,7 +135,8 @@ function Composer({ accounts }: { accounts: Account[] }) {
   const b = useBiz();
   const [params] = useSearchParams();
   const [q, setQ] = useState('');
-  const results = useApi<{ products: (Pick & { status: string })[] }>(`/api/biz/${b.business.id}/products?${new URLSearchParams({ status: 'active', ...(q ? { q } : {}) })}`);
+  const dq = useDebounced(q.trim());
+  const results = useApi<{ products: (Pick & { status: string })[] }>(`/api/biz/${b.business.id}/products?${new URLSearchParams({ status: 'active', ...(dq ? { q: dq } : {}) })}`);
   const [picked, setPicked] = useState<Pick[]>([]);
   const [platforms, setPlatforms] = useState<Platform[]>(accounts.map((a) => a.platform));
   const [caption, setCaption] = useState('');
@@ -185,7 +187,7 @@ function Composer({ accounts }: { accounts: Account[] }) {
             <ul className="flex flex-wrap gap-2">
               {picked.map((p, i) => (
                 <li key={p.id} className="flex items-center gap-2 rounded-full border border-line bg-paper py-1 pl-1 pr-2 text-sm font-semibold">
-                  {p.image ? <img src={p.image} alt="" className="size-7 rounded-full object-cover" /> : <span className="flex size-7 items-center justify-center rounded-full bg-red-50"><ImageIcon className="size-4 text-red-ink" aria-hidden /></span>}
+                  {p.image ? <img loading="lazy" decoding="async" src={p.image} alt="" className="size-7 rounded-full object-cover" /> : <span className="flex size-7 items-center justify-center rounded-full bg-red-50"><ImageIcon className="size-4 text-red-ink" aria-hidden /></span>}
                   <span className="max-w-40 truncate">{i + 1}. {p.name}</span>
                   <button type="button" aria-label={t('social.remove', { name: p.name })} onClick={() => toggle(p)} className="rounded-full p-0.5 hover:bg-line-soft"><X className="size-4" aria-hidden /></button>
                 </li>
@@ -203,7 +205,7 @@ function Composer({ accounts }: { accounts: Account[] }) {
                 <li key={p.id}>
                   <button type="button" aria-pressed={on} onClick={() => toggle(p)} disabled={!on && picked.length >= 10}
                     className={cx('press flex w-full items-center gap-2 rounded-xl border-[1.5px] p-1.5 text-left text-sm transition disabled:opacity-40', on ? 'border-green bg-green-50' : 'border-line hover:border-muted/50')}>
-                    {p.image ? <img src={p.image} alt="" className="size-10 shrink-0 rounded-lg object-cover" /> : <span className="size-10 shrink-0 rounded-lg bg-line-soft" />}
+                    {p.image ? <img loading="lazy" decoding="async" src={p.image} alt="" className="size-10 shrink-0 rounded-lg object-cover" /> : <span className="size-10 shrink-0 rounded-lg bg-line-soft" />}
                     <span className="min-w-0 flex-1"><span className="line-clamp-1 font-semibold">{p.name}</span>{p.price_kobo != null && <span className="text-xs text-muted">{formatNaira(p.price_kobo)}</span>}</span>
                     {on && <Check className="size-4 shrink-0 text-green" aria-hidden />}
                   </button>
@@ -276,7 +278,7 @@ function Preview({ picked, caption, handle }: { picked: Pick[]; caption: string;
           <b className="text-sm">{handle}</b>
         </div>
         <div className="relative aspect-[4/5] bg-line-soft">
-          {cur?.image ? <img src={cur.image.replace(/w=\d+/, 'w=640')} alt="" className="size-full object-cover" /> : <div className="flex size-full items-center justify-center text-sm text-muted"><ImageIcon className="mr-2 size-5" aria-hidden />{t('social.pickToPreview')}</div>}
+          {cur?.image ? <img loading="lazy" decoding="async" src={cur.image.replace(/w=\d+/, 'w=640')} alt="" className="size-full object-cover" /> : <div className="flex size-full items-center justify-center text-sm text-muted"><ImageIcon className="mr-2 size-5" aria-hidden />{t('social.pickToPreview')}</div>}
           {picked.length > 1 && <>
             <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-bold text-white">{Math.min(i, picked.length - 1) + 1}/{picked.length}</span>
             <button type="button" aria-label={t('social.next')} onClick={() => setI((x) => (x + 1) % picked.length)} className="absolute inset-y-0 right-0 w-1/3" />
@@ -321,7 +323,7 @@ function Posts({ posts }: { posts: Post[] }) {
             <li key={p.id}>
               <Card className="flex flex-wrap items-center gap-3">
                 <div className="flex -space-x-3">
-                  {p.products.slice(0, 3).map((pr) => pr.image ? <img key={pr.id} src={pr.image} alt="" className="size-12 rounded-xl border-2 border-white object-cover" /> : <span key={pr.id} className="size-12 rounded-xl border-2 border-white bg-line-soft" />)}
+                  {p.products.slice(0, 3).map((pr) => pr.image ? <img loading="lazy" decoding="async" key={pr.id} src={pr.image} alt="" className="size-12 rounded-xl border-2 border-white object-cover" /> : <span key={pr.id} className="size-12 rounded-xl border-2 border-white bg-line-soft" />)}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-2 font-bold"><PlatformMark p={p.platform} small />

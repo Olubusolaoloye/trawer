@@ -143,3 +143,30 @@ export function fabricStyle(seed: string, hex?: string | null): React.CSSPropert
   ];
   return { backgroundColor: base, backgroundImage: patterns[Math.abs(h >> 3) % 3], backgroundSize: '36px 36px' };
 }
+
+/** Placeholder rows for a list while it loads (same rhythm as the real rows, so nothing jumps). */
+export function ListSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <div role="status" aria-label="Loading" className="space-y-2">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="flex items-center gap-3 rounded-2xl border border-line/60 bg-surface p-3">
+          <div className="skeleton size-11 shrink-0 rounded-xl" />
+          <div className="flex-1 space-y-2"><Skeleton className="h-3.5 w-1/2" /><Skeleton className="h-3 w-1/3" /></div>
+          <Skeleton className="h-5 w-16" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Whole-page placeholder: heading, a headline card, tiles and a list. */
+export function PageSkeleton() {
+  return (
+    <div role="status" aria-label="Loading" className="mx-auto w-full max-w-6xl space-y-4 p-4">
+      <Skeleton className="h-8 w-48" />
+      <div className="skeleton h-36 rounded-3xl" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <div key={i} className="skeleton h-24 rounded-2xl" />)}</div>
+      <ListSkeleton rows={3} />
+    </div>
+  );
+}

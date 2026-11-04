@@ -3,7 +3,7 @@ import { useParams } from 'react-router';
 import { Check } from 'lucide-react';
 import { api } from './lib/api';
 import { formatDate, formatNaira, cx } from './lib/format';
-import { Empty, Spinner } from './components/ui';
+import { Empty, PageSkeleton } from './components/ui';
 import { t, type MessageKey } from './i18n';
 
 interface Track {
@@ -26,7 +26,7 @@ export default function TrackPage() {
     return () => clearInterval(i);
   }, [token]);
   if (missing) return <Empty>{t('track.notFound')}</Empty>;
-  if (!data) return <Spinner />;
+  if (!data) return <PageSkeleton />;
   const o = data.order;
   const steps = o.delivery_method === 'delivery' ? ['confirmed', 'packed', 'dispatched', 'delivered'] : ['confirmed', 'packed', 'collected'];
   const failed = o.fulfilment_status === 'failed';

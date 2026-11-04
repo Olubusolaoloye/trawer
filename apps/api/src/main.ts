@@ -1,3 +1,4 @@
+import './otel'; // first: tracing must wrap http/pg before they load
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { readFile } from 'node:fs/promises';
@@ -15,9 +16,10 @@ app.get('/media/:bucket/*', async (c) => {
   const bucket = c.req.param('bucket');
   if (!isPublicBucket(bucket)) return c.notFound();
   const path = c.req.path.replace(`/media/${bucket}/`, '');
-  const img = await readLocalImage(bucket, decodeURIComponent(path), Number(c.req.query('w') ?? 640));
+  const format = /image\/avif/.test(c.req.header('accept') ?? '') ? 'avif' : 'webp';
+  const img = await readLocalImage(bucket, decodeURIComponent(path), Number(c.req.query('w') ?? 640), format);
   if (!img) return c.notFound();
-  return c.body(new Uint8Array(img), 200, { 'Content-Type': 'image/webp', 'Cache-Control': 'public, max-age=31536000, immutable' });
+  return c.body(new Uint8Array(img), 200, { 'Content-Type': `image/${format}`, 'Cache-Control': 'public, max-age=31536000, immutable', Vary: 'Accept' });
 });
 
 // Production: serve the built SPA from the same origin (cookies + no CORS).

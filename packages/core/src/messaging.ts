@@ -3,6 +3,7 @@
  * provider for development and tests. Also renders order notifications: free-form text inside
  * Meta's 24-hour customer-service window, an approved template outside it.
  */
+import { fetchWithTimeout } from './http';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { formatNaira } from './money';
 import type { Inbound, Outbound } from './whatsapp';
@@ -81,7 +82,7 @@ export class MetaWhatsAppProvider implements MessagingProvider {
   constructor(private readonly appSecret: string, private readonly opts: { graphVersion?: string; fetch?: typeof fetch } = {}) {}
 
   private async post(target: SendTarget, payload: Record<string, unknown>): Promise<{ id: string }> {
-    const f = this.opts.fetch ?? fetch;
+    const f = fetchWithTimeout(15_000, this.opts.fetch ?? fetch);
     const res = await f(`https://graph.facebook.com/${this.opts.graphVersion ?? 'v23.0'}/${encodeURIComponent(target.phoneNumberId)}/messages`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${target.token}`, 'Content-Type': 'application/json' },
@@ -226,7 +227,7 @@ export interface CatalogSyncer {
 }
 
 export async function metaSyncCatalog(catalogId: string, token: string, items: CatalogItem[], opts: { graphVersion?: string; fetch?: typeof fetch } = {}): Promise<void> {
-  const f = opts.fetch ?? fetch;
+  const f = fetchWithTimeout(60_000, opts.fetch ?? fetch);
   for (let i = 0; i < items.length; i += 1000) {
     const res = await f(`https://graph.facebook.com/${opts.graphVersion ?? 'v23.0'}/${encodeURIComponent(catalogId)}/items_batch`, {
       method: 'POST',

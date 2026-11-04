@@ -899,5 +899,6 @@
   "lbl.variants": "{n} colours/sizes",
   "error.download_unavailable": "The download didn't work. In the demo, downloads are switched off.",
   "error.too_many_labels": "That's more than 2,100 labels at once. Print in smaller batches.",
-  "error.invalid_variants": "One of those products is no longer available."
+  "error.invalid_variants": "One of those products is no longer available.",
+  "imp.showAll": "Show all {n} products"
 }

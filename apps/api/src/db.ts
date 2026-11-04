@@ -9,7 +9,16 @@ pg.types.setTypeParser(1082, (v) => v); // date stays 'YYYY-MM-DD'
 const globalForPool = globalThis as unknown as { __trawerPool?: pg.Pool };
 export const pool =
   globalForPool.__trawerPool ??
-  new pg.Pool({ connectionString: env.DATABASE_URL, max: 10, idleTimeoutMillis: 30_000, application_name: 'trawer-web' });
+  new pg.Pool({
+    connectionString: env.DATABASE_URL,
+    // Point DATABASE_URL at Supabase's pooler (Supavisor, transaction mode) in production; this pool then
+    // keeps a few warm connections per API instance instead of opening one per request.
+    max: env.PG_POOL_MAX,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 5_000, // fail fast when the database is unreachable, instead of hanging
+    query_timeout: env.PG_QUERY_TIMEOUT_MS, // client-side, so it also works through transaction poolers
+    application_name: 'trawer-web',
+  });
 if (env.NODE_ENV !== 'production') globalForPool.__trawerPool = pool;
 
 export type Tx = pg.PoolClient;

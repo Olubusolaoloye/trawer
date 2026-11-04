@@ -1,10 +1,10 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useMemo } from 'react';
 import { Route, Routes, useParams } from 'react-router';
 import { StoreCtx } from './lib/store-context';
 import { StoreLayout } from './store/StoreLayout';
 import { Catalogue } from './store/Catalogue';
 import { CartPage } from './store/CartPage';
-import { Spinner } from './components/ui';
+import { PageSkeleton } from './components/ui';
 
 // Everything staff-facing is split out of the storefront bundle.
 const Dashboard = lazy(() => import('./dashboard/DashboardApp'));
@@ -36,12 +36,19 @@ function storeRoutes() {
   );
 }
 
-function PathStore() {
-  const { slug = '' } = useParams();
-  return <StoreCtx.Provider value={{ slug, base: `/s/${slug}` }}><StoreLayout /></StoreCtx.Provider>;
+function SubdomainStore({ slug }: { slug: string }) {
+  const loc = useMemo(() => ({ slug, base: '' }), [slug]);
+  return <StoreCtx.Provider value={loc}><StoreLayout /></StoreCtx.Provider>;
 }
 
-const lazyEl = (el: React.ReactNode) => <Suspense fallback={<Spinner />}>{el}</Suspense>;
+function PathStore() {
+  const { slug = '' } = useParams();
+  // Stable value: a new object each render would re-render every page under the store.
+  const loc = useMemo(() => ({ slug, base: `/s/${slug}` }), [slug]);
+  return <StoreCtx.Provider value={loc}><StoreLayout /></StoreCtx.Provider>;
+}
+
+const lazyEl = (el: React.ReactNode) => <Suspense fallback={<PageSkeleton />}>{el}</Suspense>;
 
 /** The whole app's routes. `subdomainSlug` is set when the page is a shop's own subdomain. */
 export function App({ subdomainSlug }: { subdomainSlug: string | null }) {
@@ -50,7 +57,7 @@ export function App({ subdomainSlug }: { subdomainSlug: string | null }) {
       <Routes>
         <Route path="/t/:token" element={lazyEl(<TrackPage />)} />
         <Route path="/i/:token" element={lazyEl(<InvoicePage />)} />
-        <Route path="/" element={<StoreCtx.Provider value={{ slug: subdomainSlug, base: '' }}><StoreLayout /></StoreCtx.Provider>}>{storeRoutes()}</Route>
+        <Route path="/" element={<SubdomainStore slug={subdomainSlug} />}>{storeRoutes()}</Route>
       </Routes>
     );
   }

@@ -3,6 +3,7 @@
  * a console provider in development and tests. Pure helpers (caption rendering, error classes) are
  * shared by the API and the dashboard preview.
  */
+import { fetchWithTimeout } from './http';
 import { createHmac } from 'node:crypto';
 export * from './social-caption';
 
@@ -45,7 +46,7 @@ export class MetaGraphSocialProvider implements SocialProvider {
   private readonly base: string;
   constructor(private readonly appId: string, private readonly appSecret: string, opts: { graphVersion?: string; fetch?: typeof fetch; sleep?: (ms: number) => Promise<void> } = {}) {
     this.base = `https://graph.facebook.com/${opts.graphVersion ?? 'v21.0'}`;
-    this.http = opts.fetch ?? fetch;
+    this.http = fetchWithTimeout(30_000, opts.fetch ?? fetch);
     this.sleep = opts.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
   }
   private readonly http: typeof fetch;

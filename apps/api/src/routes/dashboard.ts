@@ -50,7 +50,11 @@ dashboardRoutes.get('/slug-available/:slug', async (c) => {
 
 dashboardRoutes.get('/:bid', (c) => asStaff(c, async (tx, b) => {
   const [business, role, locations, stats] = await Promise.all([
-    one(tx, `select * from businesses where id = $1`, [b]),
+    // Only what the dashboard uses: never secret references, and not the large store-design blob (own endpoint).
+    one(tx, `select id, slug, name, kind, logo_path, brand_colour, phone, email, address, timezone, status, onboarding_completed_at,
+                    reservation_minutes, allow_credit_sales, low_stock_default, debt_reminders_enabled, default_credit_days,
+                    caption_template, data_retention_months, whatsapp_display_phone, storefront_updated_at
+             from businesses where id = $1`, [b]),
     one(tx, `select app.staff_role($1) as role`, [b]),
     many(tx, `select id, name, address, is_default from locations where business_id = $1 order by is_default desc, name`, [b]),
     one(tx, `select
@@ -285,10 +289,11 @@ dashboardRoutes.post('/:bid/products', async (c) => {
 
 dashboardRoutes.get('/:bid/products/:pid', (c) => asStaff(c, async (tx, b) => {
   const pid = c.req.param('pid');
-  const p = await one(tx, `select * from products where id = $1 and business_id = $2`, [pid, b]);
+  const p = await one(tx, `select id, name, description, category, brand, tags, status, base_unit_id, source, social_autopost, created_at, updated_at
+                           from products where id = $1 and business_id = $2`, [pid, b]);
   if (!p) throw new ApiError(404, 'not_found');
   const [variants, units, images, tierPrices, breaks, tiers] = await Promise.all([
-    many(tx, `select v.*, vc.cost_kobo,
+    many(tx, `select v.id, v.sku, v.barcode, v.colour, v.colour_hex, v.size, v.retail_price_kobo, v.low_stock_threshold, v.position, v.is_active, vc.cost_kobo,
                 (select coalesce(sum(on_hand),0)::int from stock_levels where variant_id = v.id) on_hand,
                 (select coalesce(sum(reserved),0)::int from stock_levels where variant_id = v.id) reserved,
                 (select coalesce(sum(allocated),0)::int from stock_levels where variant_id = v.id) allocated,
@@ -357,15 +362,23 @@ dashboardRoutes.put('/:bid/variants/:vid/tier-prices', async (c) => {
   }));
   return asStaff(c, async (tx, b) => {
     const vid = c.req.param('vid');
-    for (const tp of input.tier_prices) {
-      if (tp.price_kobo == null) await tx.query(`delete from tier_prices where variant_id = $1 and tier_id = $2`, [vid, tp.tier_id]);
-      else await tx.query(`insert into tier_prices (business_id, tier_id, variant_id, price_kobo) values ($1, $2, $3, $4)
-                           on conflict (tier_id, variant_id) do update set price_kobo = excluded.price_kobo, updated_at = now()`, [b, tp.tier_id, vid, tp.price_kobo]);
+    // Batched: one delete + one upsert for tiers, one replace for volume breaks (no query per row).
+    const clear = input.tier_prices.filter((tp) => tp.price_kobo == null).map((tp) => tp.tier_id);
+    const set = input.tier_prices.filter((tp) => tp.price_kobo != null);
+    if (clear.length) await tx.query(`delete from tier_prices where variant_id = $1 and tier_id = any($2::uuid[])`, [vid, clear]);
+    if (set.length) {
+      await tx.query(`insert into tier_prices (business_id, tier_id, variant_id, price_kobo)
+                      select $1, t, $2, p from unnest($3::uuid[], $4::bigint[]) as x(t, p)
+                      on conflict (tier_id, variant_id) do update set price_kobo = excluded.price_kobo, updated_at = now()`,
+        [b, vid, set.map((tp) => tp.tier_id), set.map((tp) => tp.price_kobo)]);
     }
     if (input.volume_breaks) {
       await tx.query(`delete from volume_breaks where variant_id = $1`, [vid]);
-      for (const vb of input.volume_breaks) {
-        await tx.query(`insert into volume_breaks (business_id, variant_id, tier_id, min_qty, price_kobo) values ($1, $2, $3, $4, $5)`, [b, vid, vb.tier_id, vb.min_qty, vb.price_kobo]);
+      const vbs = input.volume_breaks;
+      if (vbs.length) {
+        await tx.query(`insert into volume_breaks (business_id, variant_id, tier_id, min_qty, price_kobo)
+                        select $1, $2, t, q, p from unnest($3::uuid[], $4::int[], $5::bigint[]) as x(t, q, p)`,
+          [b, vid, vbs.map((x) => x.tier_id), vbs.map((x) => x.min_qty), vbs.map((x) => x.price_kobo)]);
       }
     }
     return c.json({ ok: true });

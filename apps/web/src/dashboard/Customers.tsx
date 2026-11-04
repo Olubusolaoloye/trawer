@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, Route, Routes, useSearchParams } from 'react-router';
 import { ChevronRight } from 'lucide-react';
 import { CustomerDetail } from './CustomerDetail';
 import { api } from '../lib/api';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { formatNaira } from '../lib/format';
-import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Select, Spinner } from '../components/ui';
+import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Select, ListSkeleton } from '../components/ui';
 import { t } from '../i18n';
 import { useBiz } from './context';
+import { useDebounced } from '../lib/debounce';
 
 export default function Customers() {
   return (
@@ -22,7 +23,15 @@ function CustomerList() {
   const b = useBiz();
   const [params, setParams] = useSearchParams();
   const pending = params.get('pending') === '1';
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(params.get('q') ?? '');
+  // Search as you type, once typing pauses (no request per keystroke).
+  const dq = useDebounced(q.trim());
+  useEffect(() => {
+    if (dq === (params.get('q') ?? '')) return;
+    const n = new URLSearchParams(params);
+    if (dq) n.set('q', dq); else n.delete('q');
+    setParams(n, { replace: true });
+  }, [dq]); // eslint-disable-line react-hooks/exhaustive-deps
   const key = `/api/biz/${b.business.id}/customers?${new URLSearchParams({ ...(pending ? { pending: 'true' } : {}), ...(params.get('q') ? { q: params.get('q')! } : {}) })}`;
   const { data } = useApi<{ customers: any[] }>(key);
   const tiers = useApi<{ tiers: any[] }>(`/api/biz/${b.business.id}/tiers`);
@@ -44,10 +53,10 @@ function CustomerList() {
         <Button type="submit" variant="secondary">{t('common.search')}</Button>
       </form>
       <ErrorNote error={review.error} />
-      {!data ? <Spinner /> : data.customers.length === 0 ? <Empty>{t('common.none')}</Empty> : (
+      {!data ? <ListSkeleton /> : data.customers.length === 0 ? <Empty>{t('common.none')}</Empty> : (
         <ul className="space-y-2">
           {data.customers.map((c) => (
-            <li key={c.id}>
+            <li key={c.id} className="cv-row">
               <Card className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Link to={c.id} className="group flex min-w-0 flex-1 items-center gap-2">

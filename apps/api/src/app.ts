@@ -21,6 +21,7 @@ import { socialBizRoutes, socialPublicRoutes } from './routes/social';
 import { reportRoutes } from './routes/reports';
 import { meRoutes } from './routes/me';
 import { clientErrorRoutes } from './routes/client-errors';
+import { vitalsRoutes } from './routes/vitals';
 import { bodyLimit } from 'hono/body-limit';
 import { compress } from 'hono/compress';
 import { rateLimit } from './limits';
@@ -37,6 +38,18 @@ const publicLimit: MiddlewareHandler<AppEnv> = async (c, next) => {
 
 export function createApp() {
   const app = new Hono<AppEnv>();
+
+  // Speed: every response says how long the server took (Server-Timing, visible in dev tools and RUM);
+  // slow requests are logged with their route pattern (no ids, no query strings).
+  app.use('*', async (c, next) => {
+    const start = performance.now();
+    await next();
+    const ms = performance.now() - start;
+    c.res.headers.append('Server-Timing', `app;dur=${ms.toFixed(1)}`);
+    if (ms >= env.SLOW_REQUEST_MS && c.req.path.startsWith('/api/')) {
+      console.warn(JSON.stringify({ level: 'warn', msg: 'slow_request', method: c.req.method, route: c.req.routePath, status: c.res.status, ms: Math.round(ms) }));
+    }
+  });
 
   app.use('*', secureHeaders({
     strictTransportSecurity: 'max-age=63072000; includeSubDomains',
@@ -150,6 +163,7 @@ export function createApp() {
   app.route('/api/biz/:bid/reports', reportRoutes);
   app.route('/api/me', meRoutes);
   app.route('/api/client-errors', clientErrorRoutes);
+  app.route('/api/vitals', vitalsRoutes);
   app.route('/api/biz', catalogRoutes);
   app.route('/api/biz', customerPriceRoutes);
   app.route('/api/biz', dashboardRoutes);

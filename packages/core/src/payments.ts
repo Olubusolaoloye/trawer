@@ -3,6 +3,7 @@
  * by implementing this interface. Trawer never stores card data and never holds funds: DVAs are
  * created against the business's Paystack subaccount so settlement goes straight to the trader.
  */
+import { fetchWithTimeout } from './http';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export interface DvaCustomer {
@@ -67,7 +68,7 @@ export class PaystackProvider implements PaymentProvider {
   }
 
   private async call<T>(path: string, init: { method: 'GET' | 'POST'; body?: unknown }): Promise<T> {
-    const f = this.opts.fetch ?? fetch;
+    const f = fetchWithTimeout(15_000, this.opts.fetch ?? fetch);
     const res = await f(`${this.opts.baseUrl ?? 'https://api.paystack.co'}${path}`, {
       method: init.method,
       headers: { Authorization: `Bearer ${this.secretKey}`, 'Content-Type': 'application/json' },

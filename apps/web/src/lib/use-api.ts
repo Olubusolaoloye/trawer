@@ -103,3 +103,23 @@ export function useMutation<A extends unknown[], R>(fn: (...args: A) => Promise<
   }, [fn]);
   return { run, pending, error, setError };
 }
+
+/**
+ * Optimistic update: change the cached data for `key` now, send the request, roll back if it fails,
+ * then refresh from the server to settle any difference.
+ */
+export async function optimistic<T>(key: string, update: (data: T) => T, request: () => Promise<unknown>): Promise<void> {
+  const before = cache.get(key);
+  if (before?.data !== undefined) {
+    cache.set(key, { ...before, data: update(before.data as T) });
+    notify(key);
+  }
+  try {
+    await request();
+  } catch (err) {
+    if (before) { cache.set(key, before); notify(key); }
+    throw err;
+  } finally {
+    void invalidate(key);
+  }
+}

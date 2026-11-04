@@ -4,7 +4,7 @@ import { Boxes, ChartColumn, ExternalLink, HandCoins, Megaphone, Home, MonitorSm
 import { api } from '../lib/api';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { PhoneSignIn } from '../components/PhoneSignIn';
-import { Button, Empty, ErrorNote, Field, Input, Spinner } from '../components/ui';
+import { Button, Empty, ErrorNote, Field, Input, PageSkeleton } from '../components/ui';
 import { cx } from '../lib/format';
 import { t } from '../i18n';
 import { BizCtx, type BizInfo } from './context';
@@ -28,7 +28,7 @@ export default function DashboardApp() {
     document.title = 'Trawer';
     document.documentElement.style.removeProperty('--brand');
   }, []);
-  if (!me.data) return <Spinner />;
+  if (!me.data) return <PageSkeleton />;
   if (!me.data.user) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-4 py-10">
@@ -134,7 +134,7 @@ function BusinessShell() {
   const { data, error } = useApi<BizInfo>(`/api/biz/${bid}`);
   const location = useLocation();
   if (error) return <Empty>{t('error.permission_denied')}</Empty>;
-  if (!data) return <Spinner />;
+  if (!data) return <PageSkeleton />;
   const base = `/dashboard/${bid}`;
   const nav = [
     { to: base, label: t('dash.home'), icon: Home, end: true },
@@ -157,7 +157,7 @@ function BusinessShell() {
         <nav aria-label="Dashboard" className="glow-green fixed inset-y-0 left-0 z-30 hidden w-60 flex-col gap-1 bg-ink px-3.5 py-5 text-white lg:flex">
           <div className="flex items-center gap-2.5 px-2 pb-5">
             {data.business.logo_url
-              ? <img src={data.business.logo_url} alt="" className="size-[38px] rounded-[11px] object-cover" />
+              ? <img loading="lazy" decoding="async" src={data.business.logo_url} alt="" className="size-[38px] rounded-[11px] object-cover" />
               : <span className="flex size-[38px] items-center justify-center rounded-[11px] font-display font-extrabold shadow-[0_6px_16px_-6px_rgb(0_0_0/0.6)]" style={{ background: data.business.brand_colour }}>{data.business.name.charAt(0)}</span>}
             <span className="flex min-w-0 flex-col"><b className="truncate text-[15px]">{data.business.name}</b><span className="truncate text-xs text-[#C9C3B6]">{data.business.slug}.trawer.shop</span></span>
           </div>
@@ -183,7 +183,7 @@ function BusinessShell() {
         </nav>
 
         <main key={location.pathname.split('/').slice(0, 4).join('/')} className="rise mx-auto max-w-6xl px-4 py-5 lg:px-10 lg:py-7">
-          <Suspense fallback={<Spinner />}>
+          <Suspense fallback={<PageSkeleton />}>
             <Routes>
               <Route index element={<TodayPage />} />
               <Route path="products/*" element={<Products />} />

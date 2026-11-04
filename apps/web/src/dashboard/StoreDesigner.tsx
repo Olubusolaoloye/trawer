@@ -68,8 +68,11 @@ function Designer({ draft, setDraft, dirty, onSaved }: { draft: Draft; setDraft:
   const logoUpload = useMutation(async (file: File) => { const r = await upload(file); setDraft({ ...draft, logo_url: r.url, logo_path: r.path }); });
   const publish = useMutation(async () => {
     const { image_url: _drop, ...hero } = d.hero;
-    await api(`/api/biz/${b.business.id}/storefront`, { method: 'PUT', json: { ...d, hero } });
-    await api(`/api/biz/${b.business.id}`, { method: 'PATCH', json: { brand_colour: draft.brand_colour, ...(draft.logo_path ? { logo_path: draft.logo_path } : {}) } });
+    // Independent saves: send both at once.
+    await Promise.all([
+      api(`/api/biz/${b.business.id}/storefront`, { method: 'PUT', json: { ...d, hero } }),
+      api(`/api/biz/${b.business.id}`, { method: 'PATCH', json: { brand_colour: draft.brand_colour, ...(draft.logo_path ? { logo_path: draft.logo_path } : {}) } }),
+    ]);
     onSaved(draft);
     setJustSaved(true);
     setTimeout(() => setJustSaved(false), 2500);

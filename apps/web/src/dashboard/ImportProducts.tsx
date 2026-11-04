@@ -242,8 +242,12 @@ function Stat({ label, value, sub, tone }: { label: string; value: number; sub?:
 
 const TONE: Record<ReportLine['status'], 'good' | 'neutral' | 'bad' | 'warn'> = { new: 'good', created: 'good', duplicate: 'neutral', skipped: 'neutral', invalid: 'bad', failed: 'bad' };
 
-function ReportTable({ lines, products }: { lines: ReportLine[]; products?: ProductInput[] }) {
+function ReportTable({ lines: all, products }: { lines: ReportLine[]; products?: ProductInput[] }) {
+  // A 1,000-row import renders in steps: the first 150 rows, then the rest on request.
+  const [showAll, setShowAll] = useState(false);
+  const lines = showAll ? all : all.slice(0, 150);
   return (
+    <>
     <div className="overflow-x-auto rounded-2xl border border-line/70 bg-surface shadow-card" tabIndex={0} role="region" aria-label={t('imp.preview')}>
       <table className="w-full min-w-[560px] text-left text-sm">
         <caption className="sr-only">{t('imp.preview')}</caption>
@@ -267,5 +271,7 @@ function ReportTable({ lines, products }: { lines: ReportLine[]; products?: Prod
         </tbody>
       </table>
     </div>
+    {!showAll && all.length > lines.length && <Button variant="secondary" className="w-full" onClick={() => setShowAll(true)}>{t('imp.showAll', { n: all.length })}</Button>}
+    </>
   );
 }

@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { ArrowRight, ChartColumn, HandCoins, Megaphone, MonitorSmartphone, Palette, Settings } from 'lucide-react';
 import { useApi } from '../lib/use-api';
 import { cx, formatNaira } from '../lib/format';
-import { Badge, Spinner, StatusPill } from '../components/ui';
+import { Badge, StatusPill, PageSkeleton } from '../components/ui';
 import { setLocale, t, type MessageKey } from '../i18n';
 import { useBiz } from './context';
 
@@ -33,7 +33,7 @@ export default function Today() {
   const b = useBiz();
   const { data } = useApi<TodayData>(`/api/biz/${b.business.id}/today`, { staleMs: 20_000 });
   const [pidgin, setPidgin] = useState(() => { try { return localStorage.getItem('trawer:locale') === 'pcm'; } catch { return false; } });
-  if (!data) return <Spinner />;
+  if (!data) return <PageSkeleton />;
   const n = data.needs_you;
   const change = data.taken_same_day_last_week_kobo > 0 ? Math.round(((data.taken_today_kobo - data.taken_same_day_last_week_kobo) / data.taken_same_day_last_week_kobo) * 100) : null;
   const hours = Array.from({ length: 11 }, (_, i) => 8 + i);

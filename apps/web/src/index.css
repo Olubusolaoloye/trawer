@@ -103,3 +103,6 @@ button, a, input, select, textarea { touch-action: manipulation; }
 .sheet-dialog { max-height: 100dvh; }
 .sheet-dialog[open] > div { animation: sheet-up .32s var(--ease-out) both; }
 .sheet-dialog::backdrop { animation: fade .2s ease-out both; }
+
+/* Long lists: the browser skips layout/paint for rows that are off-screen (cheap virtualisation). */
+.cv-row { content-visibility: auto; contain-intrinsic-size: auto 64px; }

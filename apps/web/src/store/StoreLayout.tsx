@@ -104,7 +104,7 @@ function StoreShell() {
             <div className="flex items-center gap-3 sm:min-w-0 sm:flex-1">
               <Link to={href('/')} viewTransition className="flex min-w-0 flex-1 items-center gap-3">
                 {b.logo_url
-                  ? <img src={b.logo_url} alt="" width={46} height={46} className="size-[46px] rounded-xl bg-surface object-cover shadow-sm" />
+                  ? <img decoding="async" src={b.logo_url} alt="" width={46} height={46} className="size-[46px] rounded-xl bg-surface object-cover shadow-sm" />
                   : <span className={cx('flex size-[46px] shrink-0 items-center justify-center rounded-xl font-display text-[22px] font-extrabold shadow-sm', onBrand ? 'bg-surface text-brand' : 'bg-brand text-brand-ink')} aria-hidden>{b.name.charAt(0)}</span>}
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate font-display text-[21px] font-extrabold leading-tight tracking-tight">{b.name}</span>

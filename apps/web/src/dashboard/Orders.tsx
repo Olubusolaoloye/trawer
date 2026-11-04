@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, Route, Routes, useParams, useSearchParams } from 'react-router';
 import { FileText, LayoutGrid, List, MessageCircle } from 'lucide-react';
 import { nairaToKobo } from '@trawer/core/money';
 import { api } from '../lib/api';
 import { invalidate, useApi, useMutation } from '../lib/use-api';
 import { cx, formatDate, formatNaira } from '../lib/format';
-import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Select, Spinner } from '../components/ui';
+import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Select, ListSkeleton, PageSkeleton } from '../components/ui';
 import { t, type MessageKey } from '../i18n';
 import { useBiz } from './context';
 import { DeliveryCard } from './DeliveryCard';
+import { useDebounced } from '../lib/debounce';
 
 export default function Orders() {
   return (
@@ -35,6 +36,14 @@ function OrderBoard() {
   const b = useBiz();
   const [params, setParams] = useSearchParams();
   const [q, setQ] = useState(params.get('q') ?? '');
+  // Search as you type, once typing pauses (no request per keystroke).
+  const dq = useDebounced(q.trim());
+  useEffect(() => {
+    if (dq === (params.get('q') ?? '')) return;
+    const n = new URLSearchParams(params);
+    if (dq) n.set('q', dq); else n.delete('q');
+    setParams(n, { replace: true });
+  }, [dq]); // eslint-disable-line react-hooks/exhaustive-deps
   const view = params.get('view') ?? 'board';
   const qs = new URLSearchParams([...params].filter(([k, v]) => v && k !== 'view'));
   const { data } = useApi<{ orders: Row[] }>(`/api/biz/${b.business.id}/orders?${qs}`, { staleMs: 5_000 });
@@ -61,10 +70,10 @@ function OrderBoard() {
         </form>
       </div>
 
-      {!data ? <Spinner /> : data.orders.length === 0 ? <Empty>{t('common.none')}</Empty> : view === 'list' ? (
+      {!data ? <ListSkeleton /> : data.orders.length === 0 ? <Empty>{t('common.none')}</Empty> : view === 'list' ? (
         <ul className="divide-y divide-line-soft rounded-2xl border border-line/70 bg-white shadow-card">
           {data.orders.map((o) => (
-            <li key={o.id}>
+            <li key={o.id} className="cv-row">
               <Link to={`${b.base}/orders/${o.id}`} className="flex min-h-16 items-center justify-between gap-3 px-4 py-2.5">
                 <div className="min-w-0"><p className="font-bold">#{o.order_number} · {o.customer}</p><p className="text-sm text-muted">{CH_LABEL[o.channel]} · {formatDate(o.created_at, true)}{o.needs_attention ? ' · ⚠' : ''}</p></div>
                 <div className="text-right"><p className="num font-display font-extrabold">{formatNaira(o.total_kobo)}</p><Badge tone={tone(o.payment_status)}>{o.payment_status}</Badge></div>
@@ -115,7 +124,7 @@ function OrderDetail() {
     await invalidate(`/api/biz/${b.business.id}/`);
   });
   const cancel = useMutation(async () => { await api(`${key}/cancel`, { json: {} }); await invalidate(key); });
-  if (!data) return <Spinner />;
+  if (!data) return <PageSkeleton />;
   const o = data.order;
   return (
     <div className="mx-auto max-w-3xl space-y-4">

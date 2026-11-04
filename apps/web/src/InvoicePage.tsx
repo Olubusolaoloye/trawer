@@ -3,7 +3,7 @@ import { useParams } from 'react-router';
 import { Download, Printer } from 'lucide-react';
 import { api } from './lib/api';
 import { cx, formatDate, formatNaira } from './lib/format';
-import { Empty, Spinner } from './components/ui';
+import { Empty, PageSkeleton } from './components/ui';
 import { t, type MessageKey } from './i18n';
 
 interface Doc {
@@ -36,7 +36,7 @@ export default function InvoicePage() {
     api<Doc>(`/api/docs/${encodeURIComponent(token)}`).then((d) => { setDoc(d); document.title = `${d.number} · ${d.business.name}`; }).catch(() => setMissing(true));
   }, [token]);
   if (missing) return <Empty>{t('doc.notFound')}</Empty>;
-  if (!doc) return <Spinner />;
+  if (!doc) return <PageSkeleton />;
 
   const o = doc.order;
   const receipt = doc.kind === 'receipt';

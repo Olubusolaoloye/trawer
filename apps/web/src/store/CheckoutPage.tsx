@@ -7,7 +7,7 @@ import { cart } from '../lib/cart';
 import { useApi, useMutation } from '../lib/use-api';
 import { formatNaira, cx } from '../lib/format';
 import { useStoreLocation } from '../lib/store-context';
-import { ErrorNote, Field, Input, Spinner, Textarea } from '../components/ui';
+import { ErrorNote, Field, Input, Textarea, PageSkeleton } from '../components/ui';
 import { t } from '../i18n';
 import { CartLineThumb, savingOf, useQuote } from './CartPage';
 import { useStore } from './StoreLayout';
@@ -46,10 +46,10 @@ export function CheckoutPage() {
   });
 
   if (placedId) return <Navigate to={href(`/orders/${placedId}`)} replace />;
-  if (!me.data) return <Spinner />;
+  if (!me.data) return <PageSkeleton />;
   if (!me.data.user || !store.me) return <Navigate to={href('/account?next=/checkout')} replace />;
   if (!lines.length) return <Navigate to={href('/cart')} replace />;
-  if (!quote) return <Spinner />;
+  if (!quote) return <PageSkeleton />;
   const addressOk = method === 'pickup' || (addr.line1.trim().length >= 3 && addr.city.trim().length >= 2);
 
   return (

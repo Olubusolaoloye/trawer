@@ -12,6 +12,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { installGlobalHandlers } from './lib/monitor';
 import { startEarlyFetches } from './lib/early';
 import { seedCache } from './lib/use-api';
+import { startVitals } from './lib/vitals';
 
 const saved = (() => { try { return localStorage.getItem('trawer:locale'); } catch { return null; } })();
 const otherLocale = !!saved && (LOCALES as readonly string[]).includes(saved) && saved !== 'en';
@@ -46,7 +47,13 @@ function serverData(): Record<string, unknown> | null {
 void ready.then(() => {
   const ssr = DEMO ? null : serverData();
   if (ssr) seedCache(ssr);
-  if (!DEMO) { installGlobalHandlers(); if (!ssr) startEarlyFetches(); }
+  if (!DEMO) {
+    installGlobalHandlers();
+    if (!ssr) startEarlyFetches();
+    // Speed tracking starts when the browser is idle (observers replay earlier entries), never before the page.
+    const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 1));
+    idle(() => startVitals(!!hostStoreSlug()));
+  }
   const root = document.getElementById('root')!;
   const tree = (
     <StrictMode>

@@ -40,7 +40,8 @@ describe('RLS coverage', () => {
   });
 
   it('has a business_id column on every tenant table', async () => {
-    const globalTables = new Set(['businesses', 'consents', 'rate_limits', 'webhook_events', 'units', 'privacy_requests']);
+    // web_vitals: anonymous speed measurements, not shop data (server-only, RLS on, no grants).
+    const globalTables = new Set(['businesses', 'consents', 'rate_limits', 'webhook_events', 'units', 'privacy_requests', 'web_vitals']);
     const rows = await sql<{ table_name: string }>(`
       select t.table_name from information_schema.tables t
       where t.table_schema = 'public' and t.table_type = 'BASE TABLE'

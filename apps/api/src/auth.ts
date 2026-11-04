@@ -9,6 +9,9 @@ import { SignJWT, createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
 import type { Claims } from '@trawer/db';
 import { env } from './env';
 import { one, withService } from './db';
+import { fetchWithTimeout } from '@trawer/core/http';
+
+const http = fetchWithTimeout(10_000);
 
 export interface Session {
   accessToken: string;
@@ -56,7 +59,7 @@ export function tokenExpiry(token: string): number {
 // ---------------------------------------------------------------------------------------------
 async function gotrue<T>(path: string, body: unknown, accessToken?: string): Promise<T> {
   if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) throw new AuthError('auth_not_configured', 500);
-  const res = await fetch(`${env.SUPABASE_URL}/auth/v1${path}`, {
+  const res = await http(`${env.SUPABASE_URL}/auth/v1${path}`, {
     method: 'POST',
     headers: {
       apikey: env.SUPABASE_ANON_KEY,

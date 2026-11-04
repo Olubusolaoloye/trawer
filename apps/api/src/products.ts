@@ -37,26 +37,38 @@ export async function createProduct(tx: Tx, businessId: string, input: ProductIn
     [businessId, input.name, input.description, input.category ?? null, input.brand ?? null,
      units.get(input.base_unit.toLowerCase()), input.source, opts.aiDraft ? JSON.stringify(opts.aiDraft) : null]);
   const pid = product!.id;
-  for (const pack of input.packs) {
-    await tx.query(`insert into product_units (business_id, product_id, unit_id, factor) values ($1, $2, $3, $4)
+  // One statement per step, whatever the number of packs or colours (no query per row).
+  if (input.packs.length) {
+    await tx.query(`insert into product_units (business_id, product_id, unit_id, factor)
+                    select $1, $2, u, f from unnest($3::uuid[], $4::int[]) as x(u, f)
                     on conflict (product_id, unit_id) do update set factor = excluded.factor`,
-      [businessId, pid, units.get(pack.unit.toLowerCase()), pack.factor]);
+      [businessId, pid, input.packs.map((p) => units.get(p.unit.toLowerCase())), input.packs.map((p) => p.factor)]);
   }
-  for (const [i, v] of input.variants.entries()) {
-    const variant = await one<{ id: string }>(tx,
-      `insert into product_variants (business_id, product_id, sku, barcode, colour, colour_hex, size, retail_price_kobo, position)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`,
-      [businessId, pid, v.sku || null, v.barcode || null, v.colour || null, v.colour_hex || null, v.size || null, v.retail_price_kobo, i]);
-    if (v.cost_kobo != null) {
-      await tx.query(`insert into variant_costs (business_id, variant_id, cost_kobo) values ($1, $2, $3)`, [businessId, variant!.id, v.cost_kobo]);
-    }
-    if (v.image_path) {
-      await tx.query(`insert into variant_images (business_id, product_id, variant_id, path, position) values ($1, $2, $3, $4, 0)`,
-        [businessId, pid, input.variants.length > 1 ? variant!.id : null, v.image_path]);
-    }
-    if (v.opening_stock) {
-      await tx.query(`select public.receive_stock($1, $2, null, 'opening stock')`, [variant!.id, v.opening_stock]);
-    }
+  const v = input.variants;
+  const col = <T>(f: (x: (typeof v)[number]) => T) => v.map(f);
+  const ids = (await many<{ id: string; position: number }>(tx,
+    `insert into product_variants (business_id, product_id, sku, barcode, colour, colour_hex, size, retail_price_kobo, position)
+     select $1, $2, sku, barcode, colour, hex, size, price, pos
+     from unnest($3::text[], $4::text[], $5::text[], $6::text[], $7::text[], $8::bigint[], $9::int[]) as x(sku, barcode, colour, hex, size, price, pos)
+     order by pos
+     returning id, position`,
+    [businessId, pid, col((x) => x.sku || null), col((x) => x.barcode || null), col((x) => x.colour || null), col((x) => x.colour_hex || null),
+     col((x) => x.size || null), col((x) => x.retail_price_kobo), v.map((_, i) => i)]))
+    .sort((a, b) => a.position - b.position).map((r) => r.id);
+  const withCost = v.flatMap((x, i) => (x.cost_kobo != null ? [[ids[i]!, x.cost_kobo] as const] : []));
+  if (withCost.length) {
+    await tx.query(`insert into variant_costs (business_id, variant_id, cost_kobo) select $1, id, c from unnest($2::uuid[], $3::bigint[]) as x(id, c)`,
+      [businessId, withCost.map((w) => w[0]), withCost.map((w) => w[1])]);
+  }
+  const withImage = v.flatMap((x, i) => (x.image_path ? [[v.length > 1 ? ids[i]! : null, x.image_path] as const] : []));
+  if (withImage.length) {
+    await tx.query(`insert into variant_images (business_id, product_id, variant_id, path, position) select $1, $2, id, path, 0 from unnest($3::uuid[], $4::text[]) as x(id, path)`,
+      [businessId, pid, withImage.map((w) => w[0]), withImage.map((w) => w[1])]);
+  }
+  const withStock = v.flatMap((x, i) => (x.opening_stock ? [[ids[i]!, x.opening_stock] as const] : []));
+  if (withStock.length) {
+    await tx.query(`select public.receive_stock(id, qty, null, 'opening stock') from unnest($1::uuid[], $2::int[]) as x(id, qty)`,
+      [withStock.map((w) => w[0]), withStock.map((w) => w[1])]);
   }
   // Publish last so drafts-with-price rules apply while variants are inserted.
   if (input.status === 'active') {

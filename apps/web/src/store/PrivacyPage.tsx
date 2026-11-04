@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Download, ShieldCheck, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
-import { invalidate, useApi, useMutation } from '../lib/use-api';
+import { invalidate, useApi, useMutation, optimistic } from '../lib/use-api';
 import { cx, formatNaira } from '../lib/format';
 import { useStoreLocation } from '../lib/store-context';
 import { Button, Card, ErrorNote, Field, Input, Skeleton } from '../components/ui';
@@ -18,8 +18,10 @@ export default function PrivacyPage() {
   const me = useApi<{ user: { phone: string } | null }>('/api/auth/me');
   const { data } = useApi<{ shops: Shop[] }>(me.data?.user ? '/api/me/privacy' : null);
   const consent = useMutation(async (business_id: string, kind: 'marketing' | 'whatsapp_updates', granted: boolean) => {
-    await api('/api/me/consent', { json: { business_id, kind, granted } });
-    await invalidate('/api/me/privacy');
+    // The switch flips at once; it flips back if the server says no.
+    await optimistic<{ shops: Shop[] }>('/api/me/privacy',
+      (d) => ({ ...d, shops: d.shops.map((s) => (s.business_id === business_id ? { ...s, [kind]: granted } : s)) }),
+      () => api('/api/me/consent', { json: { business_id, kind, granted } }));
   });
 
   if (me.data && !me.data.user) { navigate(href('/account')); return null; }

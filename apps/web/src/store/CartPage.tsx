@@ -37,7 +37,7 @@ export function savingOf(q: Quote): number {
 export function CartLineThumb({ line, size = 'md' }: { line: Pick<QuoteLine, 'image' | 'variant_id'>; size?: 'md' | 'lg' }) {
   const box = size === 'lg' ? 'size-[76px] rounded-2xl' : 'size-14 rounded-xl';
   return line.image
-    ? <img src={line.image} alt="" width={76} height={76} className={cx('shrink-0 bg-line-soft object-cover', box)} />
+    ? <img loading="lazy" decoding="async" src={line.image} alt="" width={76} height={76} className={cx('shrink-0 bg-line-soft object-cover', box)} />
     : <div className={cx('shrink-0', box)} style={fabricStyle(line.variant_id)} aria-hidden />;
 }
 

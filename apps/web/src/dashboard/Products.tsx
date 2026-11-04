@@ -1,17 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Barcode, Camera, FileSpreadsheet, ImagePlus, Plus, Send, Sparkles, Trash2 } from 'lucide-react';
 import { nairaToKobo } from '@trawer/core/money';
 import { api } from '../lib/api';
-import { invalidate, useApi, useMutation } from '../lib/use-api';
+import { invalidate, useApi, useMutation, optimistic } from '../lib/use-api';
 import { cx, formatDate, formatNaira } from '../lib/format';
-import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Select, Spinner, Textarea } from '../components/ui';
+import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Select, Textarea, ListSkeleton, PageSkeleton } from '../components/ui';
 import { t } from '../i18n';
 import { useBiz } from './context';
 import { useMfaRetry } from './MfaGate';
 import { ImportProducts } from './ImportProducts';
 import { Labels } from './Labels';
 import { SnapProduct, type SnapResult } from './SnapProduct';
+import { useDebounced } from '../lib/debounce';
 
 export default function Products() {
   return (
@@ -30,6 +31,14 @@ function ProductList() {
   const b = useBiz();
   const [params, setParams] = useSearchParams();
   const [q, setQ] = useState(params.get('q') ?? '');
+  // Search as you type, once typing pauses (no request per keystroke).
+  const dq = useDebounced(q.trim());
+  useEffect(() => {
+    if (dq === (params.get('q') ?? '')) return;
+    const n = new URLSearchParams(params);
+    if (dq) n.set('q', dq); else n.delete('q');
+    setParams(n, { replace: true });
+  }, [dq]); // eslint-disable-line react-hooks/exhaustive-deps
   const status = params.get('status') ?? '';
   const low = params.get('low') === '1';
   const list = useApi<{ products: any[] }>(low ? null : `/api/biz/${b.business.id}/products?${new URLSearchParams({ ...(params.get('q') ? { q: params.get('q')! } : {}), ...(status ? { status } : {}) })}`);
@@ -59,7 +68,7 @@ function ProductList() {
         <button type="button" onClick={() => setParams({ low: '1' })} className={cx('min-h-10 rounded-full border-2 px-4 text-sm font-semibold', low ? 'border-gold bg-gold text-ink text-white' : 'border-line bg-white')}>{t('dash.lowStock')}</button>
       </div>
       {low ? (
-        !lowList.data ? <Spinner /> : lowList.data.items.length === 0 ? <Empty>{t('common.none')}</Empty> : (
+        !lowList.data ? <ListSkeleton /> : lowList.data.items.length === 0 ? <Empty>{t('common.none')}</Empty> : (
           <ul className="divide-y rounded-2xl border bg-white">
             {lowList.data.items.map((i) => (
               <li key={`${i.variant_id}:${i.location_id}`}>
@@ -71,10 +80,10 @@ function ProductList() {
             ))}
           </ul>
         )
-      ) : !list.data ? <Spinner /> : list.data.products.length === 0 ? <Empty>{t('common.none')}</Empty> : (
+      ) : !list.data ? <ListSkeleton /> : list.data.products.length === 0 ? <Empty>{t('common.none')}</Empty> : (
         <ul className="divide-y rounded-2xl border bg-white">
           {list.data.products.map((p) => (
-            <li key={p.id}>
+            <li key={p.id} className="cv-row">
               <Link to={`${b.base}/products/${p.id}`} className="flex min-h-16 items-center gap-3 px-3 py-2">
                 {p.image ? <img src={p.image} alt="" width={48} height={48} loading="lazy" className="size-12 rounded-lg object-cover" /> : <div className="size-12 rounded-lg bg-line-soft" />}
                 <div className="min-w-0 flex-1">
@@ -217,8 +226,8 @@ function ProductDetail() {
   const [historyFor, setHistoryFor] = useState<string | null>(null);
   const mfa = useMfaRetry();
   const setStatus = useMutation(async (status: string) => { await api(key, { method: 'PATCH', json: { status } }); invalidate(key); });
-  const setAutopost = useMutation(async (on: boolean) => { await api(key, { method: 'PATCH', json: { social_autopost: on } }); invalidate(key); });
-  if (!data) return <Spinner />;
+  const setAutopost = useMutation((on: boolean) => optimistic<any>(key, (d) => ({ ...d, product: { ...d.product, social_autopost: on } }), () => api(key, { method: 'PATCH', json: { social_autopost: on } })));
+  if (!data) return <PageSkeleton />;
   const p = data.product;
   return (
     <div className="space-y-5">
@@ -244,13 +253,13 @@ function ProductDetail() {
             <Send className="size-4" aria-hidden />{t('social.postProduct')}
           </Link>
           <label className="flex flex-1 cursor-pointer items-center gap-2 text-sm">
-            <input type="checkbox" className="size-5 accent-green" checked={!!p.social_autopost} disabled={setAutopost.pending} onChange={(e) => void setAutopost.run(e.target.checked)} />
+            <input type="checkbox" className="size-5 accent-green" checked={!!p.social_autopost} onChange={(e) => void setAutopost.run(e.target.checked)} />
             <span><b>{t('social.autopost')}</b> <span className="text-muted">{t('social.autopostHint')}</span></span>
           </label>
         </div>
       )}
       {data.images.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto">{data.images.map((i: any) => <img key={i.id} src={i.url} alt="" className="size-24 rounded-xl object-cover" />)}</div>
+        <div className="flex gap-2 overflow-x-auto">{data.images.map((i: any) => <img loading="lazy" decoding="async" key={i.id} src={i.url} alt="" className="size-24 rounded-xl object-cover" />)}</div>
       )}
       <p className="text-sm text-body">Units: {data.units.map((u: any) => `${u.name}${u.factor > 1 ? ` = ${u.factor}` : ''}`).join(' · ')}</p>
       {data.variants.map((v: any) => (
@@ -345,7 +354,7 @@ function VariantCard({ v, tiers, tierPrices, reload, onHistory, showHistory, mfa
         )}
       </div>
       <Button variant="ghost" size="sm" onClick={onHistory}>{showHistory ? 'Hide history' : 'Stock history'}</Button>
-      {showHistory && (!history.data ? <Spinner /> : (
+      {showHistory && (!history.data ? <ListSkeleton /> : (
         <ul className="divide-y text-sm">
           {history.data.history.map((h) => (
             <li key={h.id} className="flex justify-between gap-3 py-2">

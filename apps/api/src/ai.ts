@@ -35,7 +35,8 @@ export class ClaudeProvider implements AiProvider {
   private client: Anthropic;
   /** `options` lets tests swap the HTTP layer; production uses the defaults. */
   constructor(options: ConstructorParameters<typeof Anthropic>[0] = {}) {
-    this.client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, ...options });
+    // A draft should take seconds; give up after a minute (one retry) instead of the SDK's 10-minute default.
+    this.client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, timeout: 60_000, maxRetries: 1, ...options });
   }
 
   async draftProduct(req: DraftRequest): Promise<ProductDraft> {

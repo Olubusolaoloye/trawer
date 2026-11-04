@@ -32,6 +32,11 @@ const schema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().default('claude-opus-5-5'),
   CRON_SECRET: z.string().min(16).default('dev-cron-secret-change-me'),
+  // Database pool per API instance, and the longest any single query may run.
+  // Requests slower than this are logged (ms).
+  SLOW_REQUEST_MS: z.coerce.number().int().min(50).default(1000),
+  PG_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
+  PG_QUERY_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).default(15_000),
   // How many reverse proxies (load balancer, CDN) sit in front of the API. 0 = clients connect directly,
   // so X-Forwarded-For is ignored (anyone can type it). N = use the address the N-th proxy saw.
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),

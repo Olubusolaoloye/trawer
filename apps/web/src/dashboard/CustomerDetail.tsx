@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router';
 import { Search, Tag, Trash2 } from 'lucide-react';
 import { nairaToKobo } from '@trawer/core/money';
 import { api } from '../lib/api';
-import { invalidate, useApi } from '../lib/use-api';
+import { invalidate, useApi, optimistic } from '../lib/use-api';
 import { cx, formatNaira } from '../lib/format';
 import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Skeleton } from '../components/ui';
 import { t } from '../i18n';
@@ -53,8 +53,9 @@ function SpecialPrices({ data, reloadKey }: { data: Detail; reloadKey: string })
   // A ref, not state: the request (and its retry after the 2FA prompt) must see the row just tapped.
   const removing = useRef<string[]>([]);
   const remove = useMfaMutation(async () => {
-    await api(`${base}/clear`, { json: { variant_ids: removing.current } });
-    await invalidate(reloadKey);
+    const gone = removing.current;
+    await optimistic<Detail>(reloadKey, (d) => ({ ...d, prices: d.prices.filter((p) => !gone.includes(p.variant_id)) }),
+      () => api(`${base}/clear`, { json: { variant_ids: gone } }));
   });
   const groups = data.prices.reduce<Record<string, Special[]>>((g, p) => { (g[p.product_id] ??= []).push(p); return g; }, {});
   return (

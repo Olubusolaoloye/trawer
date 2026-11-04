@@ -269,7 +269,8 @@ test('social: owner connects Instagram + Facebook (sandbox), posts a product, an
   await expect(page.getByText('@myshop.ng').first()).toBeVisible();
 
   await page.getByLabel('Find products').fill('Kano');
-  await page.getByRole('list', { name: 'Products' }).getByRole('button').first().click();
+  // The search waits for typing to pause: pick the matching result once the list has filtered.
+  await page.getByRole('list', { name: 'Products' }).getByRole('button', { name: /Kano Lace/ }).first().click();
   await expect(page.getByLabel('Caption')).toHaveValue(/Kano Lace .* — ₦/);
   await page.getByRole('button', { name: 'Post now' }).click();
   await expect(page.getByText('Posting now')).toBeVisible();

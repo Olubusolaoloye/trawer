@@ -35,7 +35,13 @@ cronRoutes.post('/debt-reminders', async (c) => {
 });
 cronRoutes.post('/whatsapp-catalog', async (c) => c.json(await syncWhatsAppCatalogs()));
 /** Daily: NDPA retention (anonymise long-inactive customers, prune old message logs). */
-cronRoutes.post('/retention', async (c) => c.json(await withService(async (tx) => (await one<{ r: unknown }>(tx, `select public.apply_retention() r`))!.r)));
+cronRoutes.post('/retention', async (c) => c.json(await withService(async (tx) => {
+  await tx.query(`delete from web_vitals where created_at < now() - interval '90 days'`);
+  return (await one<{ r: unknown }>(tx, `select public.apply_retention() r`))!.r;
+})));
+
+/** Operators: real-user speed (p75 per page type, last 7 days). Same secret as the cron jobs. */
+cronRoutes.get('/vitals', async (c) => c.json({ pages: await withService((tx) => many(tx, `select * from web_vitals_p75 order by visits desc`)) }));
 /** Every minute: publish due Instagram/Facebook posts. */
 cronRoutes.post('/social', async (c) => c.json(await publishDuePosts()));
 

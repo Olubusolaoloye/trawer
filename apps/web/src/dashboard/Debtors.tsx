@@ -4,7 +4,7 @@ import { MessageCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { useApi, useMutation } from '../lib/use-api';
 import { cx, formatDate, formatNaira } from '../lib/format';
-import { Badge, Button, Card, Empty, ErrorNote, Spinner } from '../components/ui';
+import { Badge, Button, Card, Empty, ErrorNote, PageSkeleton } from '../components/ui';
 import { t, type MessageKey } from '../i18n';
 import { useBiz } from './context';
 
@@ -45,7 +45,7 @@ function Book() {
     } finally { setBusy(null); }
   });
   if (error) return <ErrorNote error={error} />;
-  if (!data) return <Spinner />;
+  if (!data) return <PageSkeleton />;
   const max = Math.max(1, ...BUCKETS.map((x) => data.aging[x.k]));
 
   return (
@@ -83,7 +83,7 @@ function Book() {
             const orders = data.orders.filter((o) => o.customer_id === c.id);
             const late = (c.overdue_kobo ?? 0) > 0;
             return (
-              <li key={c.id}>
+              <li key={c.id} className="cv-row">
                 <Card className={cx('space-y-3', late && 'border-l-4 border-l-red')}>
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -133,7 +133,7 @@ function Statement() {
   const { cid = '' } = useParams();
   const { data, error } = useApi<StatementData>(`/api/biz/${b.business.id}/customers/${cid}/statement`);
   if (error) return <ErrorNote error={error} />;
-  if (!data) return <Spinner />;
+  if (!data) return <PageSkeleton />;
   const balance = data.entries.at(-1)?.running_kobo ?? 0;
   return (
     <div className="mx-auto max-w-3xl space-y-4">
